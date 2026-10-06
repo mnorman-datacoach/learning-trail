@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Learning Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#4a3558; --wood:#7a4a22; --wood-hi:#c8913f; --wood-dk:#2a1608;
+  --ink:#f4ead2; --amber:#ffcc55; --dim:#b9aa8c; --green:#86e070; --blue:#7cc8ff; --pink:#ff9ad5; --err:#ff9a7a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --page:#140d1c; } }
+:root[data-theme="dark"]{ --page:#140d1c; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+html,body{ margin:0; }
+body{
+  background:var(--page); color:var(--ink);
+  font-family:"VT323","Courier New",Courier,monospace; font-size:25px; line-height:1.15;
+  min-height:100vh;
+}
+.shell{ display:flex; justify-content:center; padding:18px 12px 28px; }
+.frame{
+  width:min(100%,960px); background:#000;
+  border:6px solid var(--wood);
+  box-shadow:inset 0 0 0 3px var(--wood-hi), 0 0 0 3px var(--wood-dk), 8px 8px 0 rgba(0,0,0,.45);
+}
+.screen{ position:relative; aspect-ratio:16/9; background:#000; overflow:hidden; }
+#scene{ display:block; width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; }
+.hud{
+  position:absolute; top:6px; left:10px; right:10px; display:flex; justify-content:space-between; gap:12px;
+  font-size:22px; color:#fff; text-shadow:2px 2px 0 #000; pointer-events:none;
+}
+.hud[hidden]{ display:none; }
+.hud .bk{ color:var(--err); }
+.banner{
+  position:absolute; left:0; right:0; bottom:10px; text-align:center; padding:0 12px;
+  font-size:27px; color:#fff; text-shadow:2px 2px 0 #000, -1px -1px 0 #000; pointer-events:none;
+}
+.panel{ padding:20px 24px 24px; min-height:270px; border-top:4px solid var(--wood-hi); }
+.panel p{ margin:0 0 12px; max-width:68ch; }
+.place{
+  font-family:"Press Start 2P","Courier New",monospace; font-size:14px; line-height:1.6;
+  color:var(--amber); margin:0 0 14px; font-weight:normal;
+}
+.prompt{ color:var(--dim); margin-top:14px; }
+.choices{ list-style:none; padding:0; margin:6px 0 0; }
+.choices li{ margin:2px 0; }
+.choice{
+  display:flex; gap:12px; width:100%; text-align:left; cursor:pointer;
+  background:none; border:0; color:var(--ink); font:inherit; padding:4px 10px;
+}
+.choice:hover:not(:disabled){ background:rgba(255,255,255,.1); color:var(--amber); }
+.choice:focus-visible{ outline:2px solid var(--amber); outline-offset:0; color:var(--amber); }
+.choice:disabled{ color:#6f6a5e; cursor:not-allowed; }
+.choice:disabled .key{ color:#6f6a5e; }
+.choice .note{ color:#8a7f6a; }
+.choice.on .key{ color:var(--green); }
+.key{ color:var(--amber); min-width:1.4em; flex:none; }
+.btn{
+  font-family:"Press Start 2P","Courier New",monospace; font-size:12px; line-height:1.4;
+  background:var(--wood); color:var(--ink); border:3px solid var(--wood-hi);
+  padding:11px 16px; cursor:pointer; box-shadow:3px 3px 0 #000; margin:8px 10px 0 0;
+}
+.btn:hover:not(:disabled){ background:#8e5a2a; }
+.btn:focus-visible{ outline:3px solid var(--amber); outline-offset:3px; }
+.btn:active:not(:disabled){ transform:translate(2px,2px); box-shadow:1px 1px 0 #000; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.btn.quiet{ background:#222; border-color:#555; }
+.picked{ color:var(--dim); }
+.status{ color:var(--green); }
+.status.one{ color:var(--amber); }
+.echo{ color:var(--pink); }
+.warn{ color:var(--err); }
+.marker{ color:var(--dim); border-left:4px solid #777; padding-left:12px; }
+.marker q{ color:var(--ink); }
+.guide{ display:grid; grid-template-columns:104px 1fr; gap:20px; align-items:start; }
+.portrait{ width:104px; height:104px; image-rendering:pixelated; border:3px solid var(--wood-hi); background:#3a6a9a; transition:opacity .6s, transform .6s; }
+.portrait.gone{ opacity:0; transform:translateX(40px); }
+.speaker{ color:var(--amber); margin-bottom:6px; }
+.guide video{ width:100%; max-width:480px; border:3px solid var(--wood-hi); margin-bottom:10px; display:block; }
+.ledger{ background:#1a1208; border:3px double var(--wood-hi); padding:16px 18px; max-width:620px; }
+input[type=text], textarea, select{
+  font:inherit; font-size:24px; background:#000; color:var(--amber);
+  border:2px solid var(--wood-hi); padding:6px 10px; width:min(100%,520px);
+}
+textarea{ min-height:110px; resize:vertical; display:block; }
+input[type=text]:focus-visible, textarea:focus-visible, select:focus-visible{ outline:3px solid var(--amber); outline-offset:2px; }
+label{ display:block; margin-bottom:6px; }
+.title{
+  font-family:"Press Start 2P","Courier New",monospace; font-weight:normal;
+  font-size:clamp(20px,4.4vw,38px); line-height:1.3; margin:4px 0 10px; color:var(--amber);
+  text-shadow:4px 4px 0 var(--wood-dk);
+}
+.sub{ color:var(--ink); font-size:27px; margin-bottom:16px; }
+.identity{ font-family:"Press Start 2P","Courier New",monospace; font-size:clamp(16px,3vw,24px); color:var(--amber); margin:6px 0 14px; line-height:1.4; }
+.cycle{ display:flex; flex-wrap:wrap; gap:10px 18px; margin:6px 0 16px; font-family:"Press Start 2P","Courier New",monospace; font-size:clamp(14px,2.8vw,22px); }
+.cycle span{ opacity:0; animation:appear .5s steps(4) forwards; animation-delay:calc(3s + var(--d) * 500ms); }
+.cycle .w0{ color:var(--amber); } .cycle .w1{ color:var(--green); } .cycle .w2{ color:var(--blue); } .cycle .w3{ color:var(--pink); }
+.timeline{ list-style:none; padding:0; margin:6px 0 8px; display:grid; grid-template-columns:repeat(9,1fr); gap:4px; font-size:18px; line-height:1.05; max-width:900px; }
+.timeline li{ border-top:4px solid var(--wood-hi); padding:6px 4px 0; display:flex; flex-direction:column; gap:3px; }
+.timeline li.c2{ border-top-color:var(--blue); } .timeline li.c3{ border-top-color:var(--pink); }
+.timeline .dot{ color:#666; font-size:20px; } .timeline .dot.on{ color:var(--amber); }
+.timeline .ph{ opacity:1; animation:none; }
+.ttd p{ margin:0 0 10px; }
+.planner label{ margin-top:12px; }
+.planner textarea{ min-height:72px; }
+.timeline .cy{ color:var(--dim); font-size:16px; min-height:1em; }
+.timeline li.c4{ border-top-color:var(--green); }
+.ph-check{ color:#fff; }
+.trailmap{ list-style:none; padding:0; margin:4px 0 18px; display:grid; grid-template-columns:repeat(9,1fr); gap:6px; font-size:19px; line-height:1.05; }
+.trailmap li{ border-top:3px dashed var(--wood-hi); padding-top:6px; }
+.trailmap .ph{ display:block; margin-top:4px; opacity:0; animation:appear .4s steps(3) forwards; animation-delay:calc(var(--d) * 320ms); }
+.ph-teach{ color:var(--amber); } .ph-try{ color:var(--green); } .ph-discuss{ color:var(--blue); } .ph-repeat{ color:var(--pink); } .ph-goal{ color:#fff; }
+.big-q{ font-family:"Press Start 2P","Courier New",monospace; font-size:clamp(16px,3.4vw,28px); color:var(--amber); line-height:1.5; margin:4px 0 16px; }
+.quote{ border-left:4px solid var(--wood-hi); padding-left:14px; }
+.small{ font-size:21px; color:var(--dim); }
+@keyframes appear{ to{ opacity:1; } }
+.gvideo{ width:100%; max-width:720px; aspect-ratio:16/9; background:#000; border:3px solid var(--wood-hi); display:block; margin:4px 0 12px; }
+details.script{ margin:0 0 12px; max-width:68ch; }
+details.script summary{ cursor:pointer; color:var(--dim); }
+details.script summary:focus-visible{ outline:2px solid var(--amber); }
+details.script p{ margin:8px 0 0; }
+.slot{ border-top:2px dashed #444; padding:12px 0 10px; max-width:720px; }
+.slot input[type=file]{ font:inherit; font-size:20px; color:var(--ink); max-width:100%; margin-top:4px; }
+.mute{ position:absolute; right:8px; bottom:8px; z-index:2; font-family:"Press Start 2P","Courier New",monospace; font-size:9px;
+  background:rgba(0,0,0,.65); color:#fff; border:2px solid var(--wood-hi); padding:6px 8px; cursor:pointer; }
+.mute:focus-visible{ outline:3px solid var(--amber); outline-offset:2px; }
+.tally{ margin:0 0 14px; max-width:720px; }
+.tname{ color:var(--amber); margin-bottom:2px; }
+.trow{ display:grid; grid-template-columns:1fr 140px 3.2em; gap:10px; align-items:center; font-size:20px; }
+.tbar{ height:12px; background:#262626; border:2px solid #555; }
+.tbar i{ display:block; height:100%; background:var(--blue); }
+
+/* status strip */
+.trailstatus{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px 18px; padding:10px 18px 12px; border-top:4px solid var(--wood-hi); background:#140b04; font-size:21px; }
+.trailstatus[hidden]{ display:none; }
+.stat .lbl{ display:flex; justify-content:space-between; gap:6px; margin-bottom:3px; }
+.stat .word{ color:var(--dim); }
+.meter{ height:14px; background:#262626; border:2px solid #5a5a5a; }
+.meter i{ display:block; height:100%; width:0; transition:width .9s steps(9);
+  background-image:repeating-linear-gradient(90deg, transparent 0 7px, rgba(0,0,0,.5) 7px 9px); }
+.m-day i{ background-color:#ffe08a; transition:none; } .m-T i{ background-color:var(--green); }
+.m-E i{ background-color:var(--amber); } .m-D i{ background-color:var(--blue); }
+.stat.up .meter{ animation:flash .3s steps(1) 4; }
+.stat.up .word{ color:#fff; }
+@keyframes flash{ 50%{ border-color:#fff; } }
+.moved{ color:var(--dim); }
+.moved b{ font-weight:normal; color:#fff; }
+
+/* chat */
+.chatlog{ background:#0b0b0b; border:2px solid #444; max-height:260px; overflow-y:auto; padding:8px 10px; margin:4px 0 14px; font-size:22px; max-width:640px; }
+.chatlog .line, .chatlog .msg{ display:block; width:100%; text-align:left; background:none; border:0; color:var(--ink); font:inherit; padding:1px 6px; }
+.chatlog .msg{ cursor:pointer; }
+.chatlog .msg:hover{ background:rgba(255,255,255,.08); }
+.chatlog .msg:focus-visible{ outline:2px solid var(--amber); }
+.chatlog .msg.flagged{ background:#3a2a00; box-shadow:inset 3px 0 0 var(--amber); }
+.who{ color:var(--blue); }
+.who.j{ color:var(--amber); }
+.tag{ color:var(--dim); margin-left:10px; }
+.tag.cp{ color:var(--err); }
+.tag.own{ color:var(--green); }
+.chatlog .errline{ color:var(--err); }
+.chatlog .caseyline{ color:var(--green); }
+.countdown{ color:var(--amber); }
+
+/* silence */
+.silence{ display:flex; gap:6px; margin:4px 0 10px; }
+.silence span{ width:22px; height:22px; border:2px solid #666; }
+.silence span.on{ background:var(--blue); border-color:var(--blue); }
+
+/* owner log */
+.logwrap{ overflow-x:auto; margin:8px 0 14px; }
+.logwrap table{ border-collapse:collapse; width:100%; font-size:20px; }
+.logwrap th{ text-align:left; color:var(--amber); font-weight:normal; border-bottom:2px solid var(--wood-hi); padding:4px 8px; }
+.logwrap td{ border-bottom:1px solid #333; padding:4px 8px; vertical-align:top; }
+.logwrap td.r{ min-width:280px; }
+
+@media (max-width:640px){
+  body{ font-size:21px; }
+  .panel{ padding:16px 14px 20px; }
+  .guide{ grid-template-columns:64px 1fr; gap:12px; }
+  .portrait{ width:64px; height:64px; }
+  .hud{ font-size:17px; } .banner{ font-size:20px; }
+  .trailmap{ grid-template-columns:repeat(3,1fr); }
+  .timeline{ grid-template-columns:repeat(3,1fr); }
+  .trailstatus{ grid-template-columns:1fr 1fr; padding:8px 12px 10px; font-size:19px; }
+  .chatlog{ font-size:19px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .cycle span,.trailmap .ph{ animation:none; opacity:1; }
+  .portrait{ transition:none; }
+  .meter i{ transition:none; } .stat.up .meter{ animation:none; }
+}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="frame">
+    <div class="screen">
+      <canvas id="scene" width="320" height="180" aria-hidden="true"></canvas>
+      <div class="hud" id="hud" hidden><span>Party: 27</span><span id="hudWagon"></span></div>
+      <div class="banner" id="banner" aria-live="polite"></div>
+      <button class="mute" id="mute" aria-pressed="false">Sound: on</button>
+    </div>
+    <div class="trailstatus" id="trailstatus" hidden aria-label="Party status"></div>
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </div>
+</main>
+<script>
+/* ============================================================
+   CONTENT — student answers per band live here. Swap in real
+   (anonymized) GCA chat lines and student work when you have them.
+   ============================================================ */
+const BANDS = {
+  k2:  { label:'Primary K–2 (PGB)', mins:30, k2:true,
+         topic:'teen numbers', task:'build 16 with ten-frames', next:'comparing two teen numbers', yn:'Is 16 one ten and six ones?',
+         mis:'16 is a 1 and a 6, so it only takes 7 counters', deep:'Why does the 1 in 16 mean ten?',
+         fast:'1 ten and 6 ones (the 6 is backwards)', wrong:'7 counters',
+         right:['a full ten-frame and 6 more','1 ten 6 ones','two frames: full one + 6','10 and 6','16 counters','ten and six'],
+         idea:'is it because the 1 is a whole ten-frame?' },
+  e35: { label:'Elementary 3–5 (EGB)', mins:30,
+         topic:'comparing fractions', task:'decide which is greater, 3/4 or 3/8', next:'comparing fractions to 1/2', yn:'Is 3/4 bigger than 3/8?',
+         mis:'3/8 is bigger because 8 is bigger than 4', deep:'Why do more pieces make each piece smaller?',
+         fast:'3/4 is biger', wrong:'3/8',
+         right:['3/4','3/4','three fourths','3/4 bc 4ths r bigger','3/4!!','the 3/4 one'],
+         idea:'is it bc the whole gets cut up more' },
+  m68: { label:'Middle 6–8 (MGB)', mins:30,
+         topic:'multiplying by decimals', task:'estimate 12 × 0.5', next:'multiplying by decimals greater than 1', yn:'Is 12 × 0.5 less than 12?',
+         mis:'12 × 0.5 has to be bigger than 12, because multiplying makes numbers bigger', deep:'Why did multiplying give you a smaller number?',
+         fast:'its 6', wrong:'24',
+         right:['6','6 (half of 12)','6','6 bc .5 is half','about 6','= 6'],
+         idea:'bc .5 is like taking half??' },
+  h912:{ label:'High School 9–12 (SGB)', mins:45,
+         topic:'slope and linear functions', task:'find the rate of change of y = 3 − 2x', next:'finding slope from two points', yn:'Is the slope of y = 3 − 2x negative?',
+         mis:'the slope is 3 because it comes first', deep:'What does a slope of −2 tell you about the situation?',
+         fast:'slope is -2 i thnk', wrong:'3',
+         right:['-2','slope = -2','m = -2','−2, goes down 2','-2 per 1','rate is -2'],
+         idea:'it goes down 2 every time x goes up?' }
+};
+const CLASSMATES = ['Ava','Mateo','Liam','Zoe','Elijah','Maya','Noah','Aaliyah','Lucas','Sofia','Isaiah','Harper','Caleb','Nevaeh','Owen','Layla','Jayden','Riley','Amir','Chloe','Xavier','Brooklyn','Diego','Kennedy','Malik'];
+
+const TOOLS = {
+  poll:     { name:'Polling tool',       short:'Polls',        desc:'Private, instant answers from the whole class.' },
+  board:    { name:'Shared whiteboard',  short:'Whiteboard',   desc:'Everyone works on one canvas where you can see it.' },
+  breakout: { name:'Breakout rooms',     short:'Breakouts',    desc:'Small groups, out of sight. They usually come back.' },
+  stamps:   { name:'Annotation stamps',  short:'Stamps',       desc:'Students mark up a slide to vote or show where they are.' },
+  exit:     { name:'Exit ticket form',   short:'Exit tickets', desc:'A quick private check at the end of class.' }
+};
+const TOOL_ORDER = ['poll','board','breakout','stamps','exit'];
+
+/* Phases follow GCA's Teach, Try, Discuss framework, repeated: the trail
+   runs the cycle three times, then closes with an end-of-class check for
+   understanding. Checking on every student happens all the way through,
+   not only at the end.
+   `all:true` marks a choice that gathers evidence from every student.
+   Text fields can have a K–2 version: k2Text, k2Out, k2Narr, k2Status. */
+const SCENES = [
+ { id:'departure', name:'The Trailhead', short:'Trailhead', landmark:'trailhead', night:0, phase:'Teach', cycle:1,
+   narr:`Today's lesson: {topic}. Your party of 27 is hitched and ready. Before they set out to {task}, how much direction do they get?`,
+   choices:[
+    { text:'Model three worked examples, then send them off.', T:0,E:0,D:0, cost:6, flag:'modeled',
+      out:`The examples are crisp. Your party watches closely and nods along. By the time they start, you've solved every example for them. They'll follow the map nicely. Whether they could find the way alone is still a mystery.` },
+    { text:'Give a focused explanation and one example, then let them try.', T:2,E:1,D:1, cost:3,
+      out:`One clear idea, one example, then you stop talking. A few travelers wobble at first, but they're moving under their own power.` },
+    { text:'Open with an open-ended challenge: students explore on their own before any teaching.', T:1,E:0,D:0, cost:5, trap:true,
+      out:`Ten minutes later, a few students have found a way in. Many are still staring at a blank page, and from where you sit you can't tell who's who. Exploring can be powerful, but students need a starting point, and you need a way to see their thinking.` },
+    { text:'Have every student predict the answer first, then teach.', T:2,E:2,D:1, cost:4, all:true,
+      out:`Predictions roll in from the whole party, wildly varied and very informative. Your teaching lands on ground the students already turned over themselves.` }
+   ]},
+ { id:'fork', name:'The Fork in the Trail', short:'Fork', landmark:'fork', night:0, phase:'Try', cycle:1,
+   narr:`{name}, you've reached a fork in the trail. Students have been working to {task}. How will you find out whether the whole party understands?`,
+   predict:{ q:'What will this tell you about your class?',
+     opts:['Where most of the class stands','How one or two students are thinking','Very little you can count on'], keys:[2,1,0,0] },
+   echo: f => f.modeled ? `Since you modeled three examples, every answer so far looks a lot like yours. Hard to tell who understands and who's imitating.` : '',
+   choices:[
+    { text:'Chat waterfall with a quick question: "{yn} Yes or no."', T:1,E:1,D:0, cost:2, trap:true,
+      out:`Every student answers at once, and 24 say yes. But on a yes-or-no question, a student with no idea still has a 50-50 shot. You heard from everyone and learned very little about who actually understands.`,
+      status:`This doesn't count as a whole-class check on your timeline. You heard from everyone, but the question couldn't tell you who understands.`,
+      k2Text:'Thumbs up or thumbs down on camera: "{yn}"',
+      k2Out:`Twenty-seven thumbs, and 24 are up. But on a thumbs-up-or-down question, a student with no idea still has a 50-50 shot. You heard from everyone and learned very little about who actually understands.` },
+    { text:'Call on a volunteer to explain.', T:1,E:1,D:2, cost:3, oneVoice:1, flag:'oneVoiceOnly',
+      out:`{vol}'s hand goes up first, as usual. The explanation is clear and complete.`,
+      status:`One traveler has safely crossed this stretch of trail. Travelers in party: 27. Travelers observed: 1.` },
+    { text:'Everyone answers privately in a poll.', T:1,E:3,D:0, cost:2, needs:['poll'], all:true,
+      out:`Twenty-four responses come in, seventeen of them correct. Now you know where most of the party is standing — though not yet why they're standing there.` },
+    { text:'Everyone types an answer in the chat.', T:2,E:2,D:1, cost:2,
+      out:`Answers pour into the chat. The first one lands in two seconds. Keep an eye on the river ahead.`,
+      k2Text:'Everyone holds their ten-frame up to the camera.',
+      k2Out:`Ten-frames fill the camera grid. The first one is up in two seconds, and a few students lean in to look at it. Keep an eye on the river ahead.` }
+   ]},
+ { id:'river', name:'River Crossing: The Copycat', short:'River', landmark:'river', night:0, phase:'Try', cycle:1, special:'river',
+   narr:`You ask the party to type their answer in the chat. Watch the chat.`,
+   k2Narr:`You ask the party to show their answer on their whiteboards. Watch the camera grid.`,
+   choices:[
+    { text:'Count it. Six correct answers — keep moving.', T:0,E:0,D:0, cost:1, oneVoice:1, flag:'oneVoiceOnly',
+      out:`The wagon rolls on. You have six matching answers and no way to tell how many travelers forded the river themselves and how many rode across on {first}'s answer.` },
+    { text:'Run a chat waterfall: type, but don\u2019t press Enter until "3, 2, 1, go."', T:2,E:3,D:0, cost:2, casey:1, flag:'caseySeen', waterfall:true, all:true,
+      out:`Nobody can copy what isn't there yet. Three answers share the same error — and now you can see it.`,
+      status:`Casey's answer is in there too. Casey got it right.`,
+      k2Text:'Everyone draws their answer face-down, then all flip their boards on "go."',
+      k2Out:`Nobody can copy a board that isn't showing yet. Three boards share the same error — and now you can see it.`,
+      k2Status:`Casey's board is in there too. Casey got it right.` },
+    { text:'Ask one of the copycats to explain how they got it.', T:1,E:1,D:2, cost:3,
+      out:`A pause. "I... um... I agree with {first}." Then a second student unmutes and explains it in their own words. One crossed on their own; one hitched a ride. Useful — but that's two travelers out of 27.` },
+    { text:'Pose a fresh problem with new numbers; everyone works it on the whiteboard.', T:2,E:2,D:0, cost:3, needs:['board'], all:true,
+      out:`New numbers, and no first answer to lean on. The board fills with honest, mixed work. Some of the copycats were copying. Some weren't.` }
+   ]},
+ { id:'rocky', name:'The Rocky Pass', short:'Rocky Pass', landmark:'rocky', night:0, phase:'Discuss', cycle:1,
+   narr:`The trail narrows. Rocks everywhere. Looking at the responses, a third of your party is stuck on the same boulder: "{mis}." How will you use it?`,
+   predict:{ q:'What happens to the misconception?',
+     opts:['Most students fix their thinking and know why','It looks fixed, but it may come back','A few students fix it; the rest aren\u2019t sure'], keys:[1,0,2,0] },
+   echo: f => f.oneVoiceOnly ? `Funny. Back on the trail, it looked like the whole party was doing just fine. The rocks say otherwise.` : '',
+   choices:[
+    { text:'Reteach the correct method clearly to everyone.', T:0,E:0,D:0, cost:3, flag:'misLeft',
+      out:`You clear the rocks yourself and point the way. The pass is open. Some travelers fixed their thinking; others learned to step around the rock while still believing it's there.` },
+    { text:'Show the wrong answer anonymously: "Why might someone think this?"', T:2,E:1,D:3, cost:4,
+      out:`Quiet at first. Then a student types, "Because it looks like it should work?" Another replies with why it doesn't. The party identifies the error and fixes it together, and the travelers who were stuck hear exactly why it moved.`,
+      k2Out:`Quiet at first. Then a student unmutes: "Because it looks like it should work?" Another explains why it doesn't, using the ten-frames. The party fixes the error together, and the travelers who were stuck hear exactly why it moved.` },
+    { text:'Send students to breakout rooms to discuss the misconception on their own.', T:1,E:0,D:1, cost:4, needs:['breakout'], flag:'misLeft', trap:true,
+      out:`The rooms are lively. When everyone comes back, a few groups talked their way out of the misconception. Two groups talked their way further into it, and they sound more sure of it than before. Nobody was there to press for evidence.` },
+    { text:'Post two strategies side by side; everyone stamps a vote and defends it.', T:2,E:2,D:2, cost:5, needs:['stamps'], all:true,
+      out:`The vote splits. Defenders on both sides make their case with mathematical evidence, in the chat and on the mic. A few travelers switch sides on purpose, which is about the best thing that can happen on a rocky pass.`,
+      k2Out:`The vote splits. Students take turns unmuting to say why they picked their side. A few switch sides on purpose, which is about the best thing that can happen on a rocky pass.` }
+   ]},
+ { id:'water', name:'The Watering Hole', short:'Watering Hole', landmark:'water', night:0, phase:'Teach', cycle:2,
+   narr:`The party rests and drinks. They're ready for the next idea: {next}. How do you teach it?`,
+   predict:{ q:'Who does most of the thinking in the next few minutes?',
+     opts:['You do','Your students do','It\u2019s about even'], keys:[0,1,1,0] },
+   choices:[
+    { text:'Walk through the whole idea yourself, start to finish, then give them a problem.', T:0,E:0,D:0, cost:6,
+      out:`It's a clear, thorough explanation. Eight minutes later, your party has watched you do all the thinking. They haven't done any yet.` },
+    { text:'Explain one key point in two minutes, then hand them a problem.', T:2,E:1,D:0, cost:3,
+      out:`Short and focused. You stop talking while they still have a reason to listen, and the party gets back on the trail with something to try.` },
+    { text:'Show a worked example with one step left blank; everyone fills it in.', T:2,E:2,D:1, cost:3, all:true,
+      out:`Every traveler has to supply the missing step. Most get it. The ones who don't show you exactly where the new idea hasn't landed yet.` },
+    { text:'Keep explaining until nobody has any questions.', T:0,E:0,D:0, cost:5,
+      out:`Eventually, no questions come. That isn't the same as no confusion. The party is very well rested.` }
+   ]},
+ { id:'broken', name:'The Broken Wagon', short:'Broken Wagon', landmark:'broken', night:0, phase:'Try', cycle:2,
+   narr:`CRACK. A wheel splits. Your {tool} won't load, and three students report that "it says error." You'd planned a quick check on the new idea. Can the strategy survive without the tool?`,
+   k2Narr:`CRACK. A wheel splits. Your {tool} won't load, and three grown-ups unmute to tell you "it says error." You'd planned a quick check on the new idea. Can the strategy survive without the tool?`,
+   choices:[
+    { text:'Skip the check. You\u2019ll catch up tomorrow.', T:0,E:0,D:0, cost:1, flag:'blind',
+      out:`Wagon patched with string, party moving. You saved daylight, but you're traveling blind on this stretch.` },
+    { text:'Same check, different tool: answers go in the chat instead.', T:1,E:2,D:0, cost:2, all:true,
+      out:`The tool is broken; the question isn't. Answers land in the chat and you get nearly the same evidence.`,
+      k2Text:'Same check, different tool: students show their answer with fingers on camera.',
+      k2Out:`The tool is broken; the question isn't. Fingers go up across the camera grid and you get nearly the same evidence.`,
+      status:`The tool can fail. The strategy doesn't have to.` },
+    { text:'Spend a few minutes troubleshooting the {tool}.', T:0,E:1,D:0, cost:5, fix:true,
+      out:`Clear cache. Reload. "Can everyone see it now?" Some can. It eventually works, and the {tool} is back in your wagon, but that daylight isn't coming back.` },
+    { text:'Students solve on paper and hold it up to the camera.', T:2,E:2,D:0, cost:2, all:true,
+      out:`Paper: the most reliable technology on the frontier. You scan the camera grid and see actual work, not just answers.` }
+   ]},
+ { id:'campfire', name:'The Campfire: Awkward Silence', short:'Campfire', landmark:'campfire', night:1, phase:'Discuss', cycle:2, special:'campfire',
+   narr:`Night falls. The fire crackles. You ask the deeper question: "{deep}"`,
+   echo: f => f.caseySeen ? `Casey sits at the edge of the firelight, camera off, as usual.` : '',
+   callOn:{ T:0,E:0,D:0, cost:1, trap:true, text:'Break the silence: call on Casey by name.',
+     out:`"Casey? What do you think?" A long pause. Casey unmutes, says "um... I don't know," and mutes again. The camera stays off for the rest of the week. Putting the quietest student on the spot in the middle of a silence rarely gets you their thinking. A private response first would have.` },
+   early:{ T:0,E:0,D:0, cost:1, flag:'toldAnswer', text:'Break the silence: answer it yourself.',
+     out:`Your explanation is excellent. Truly. The fire burns a little lower. Your students learned that if they wait long enough, the answer arrives on its own.` },
+   wait:{ T:1, cost:1 },
+   choices:[
+    { text:'Give everyone 30 seconds, then all type an answer at once.', T:1,E:2,D:1, cost:2, casey:1, flag:'caseySeen', all:true,
+      out:`Twenty responses land together. One is from Casey, who hasn't said a word all week. It's thoughtful.`,
+      k2Text:'Give think time, then everyone draws their idea and holds it up together.',
+      k2Out:`Twenty drawings come up together. One is from Casey, who hasn't said a word all week. It's a careful picture of two ten-frames.`,
+      status:`Casey didn't suddenly get smarter tonight. You made a way to see the thinking that was already there.` },
+    { text:'Ask the party to agree or disagree with that idea, and say why.', T:1,E:1,D:2, cost:2,
+      out:`"I disagree, because..." The first reply is shaky. The second builds on it. Students are asking questions about each other's reasoning now, and you're mostly listening. The fire's still going.`,
+      k2Text:'Give a sentence frame to say out loud: "I agree with ___ because..."',
+      k2Out:`The frame gives everyone a way in. Students take turns unmuting, and a few start building on each other's ideas. The fire's still going.` },
+    { text:'Thank them, then explain the rest yourself.', T:0,E:0,D:0, cost:1, flag:'toldAnswer',
+      out:`One student did some real thinking out loud. Then you did the rest of it for them. The fire burns a little lower.` }
+   ]},
+ { id:'mountain', name:'The Mountain Pass', short:'Mountain', landmark:'mountain', night:0, phase:'Teach', cycle:3,
+   narr:`Daylight is running short. Based on what you've seen, most of the party is ready to climb, but five travelers still need help with {next}. What's your next move?`,
+   predict:{ q:'How do the 22 ready students spend the next few minutes?',
+     opts:['Waiting for the group','Practicing, or explaining to classmates','Moving on to new material'], keys:[1,1,2,1] },
+   echo: f => guessing() ? `Trouble is, you haven't heard from the whole party since ${lastCheckName()}. You're guessing which five need help.` : '',
+   choices:[
+    { text:'Assign everyone a 15-problem independent practice set.', T:1,E:0,D:0, cost:3, trap:true,
+      out:`Everyone gets to work. The 22 ready students practice and get faster. The five who were stuck practice too: fifteen problems of the same mistake, with nobody there to catch it. Practice doesn't make perfect. It makes permanent.` },
+    { text:'Send ready students ahead to practice; work with the five yourself.', T:2,E:1,D:1, cost:3, guessHurts:true,
+      out:`Two groups, both moving. The ready travelers climb on their own, and the five get a short, focused reteach and another try.` },
+    { text:'Keep the whole party moving; follow up with the five tomorrow.', T:1,E:0,D:0, cost:1,
+      out:`The wagon crests the pass on schedule. Five travelers make camp below. You wrote down their names, which is more than most trail bosses do.` },
+    { text:'Pair ready students with the five in breakout rooms to explain it.', T:1,E:1,D:3, cost:3, needs:['breakout'], guessHurts:true,
+      out:`Explainers learn the most — they have to put it into words. Most pairs go great. One drifts into a conversation about Minecraft.` }
+   ]},
+ { id:'sunset', name:'Sunset: The Final Check', short:'Sunset', landmark:'sunset', night:0, phase:'Check', cycle:4,
+   narr:`The sun touches the horizon. Students will be leaving soon. What do you want to know before they go?`,
+   choices:[
+    { text:'"In the chat, tell me one thing you learned today."', T:0,E:1,D:0, cost:2, trap:true,
+      out:`Twenty-five answers roll in: "{topic}," "we learned about {topic}," "the thing with the examples." Everyone responded, and you still don't know who can do the math tomorrow.`,
+      status:`This doesn't count as a whole-class check on your timeline. You heard from everyone, but the question couldn't tell you who understands.`,
+      k2Text:'Everyone unmutes to tell you one thing they learned today.',
+      k2Out:`"Numbers!" "Ten-frames!" "My dog!" Everyone shared, and you still don't know who can do the math tomorrow.` },
+    { text:'One exit problem, submitted privately.', T:1,E:3,D:0, cost:2, needs:['poll','exit'], all:true,
+      out:`Twenty-five responses. You know exactly where tomorrow begins, and for whom.` },
+    { text:'An exit problem plus "Explain how you know," sent to you privately.', T:2,E:2,D:1, cost:3, all:true, explains:true,
+      k2Text:'An exit problem plus a quick recording: "Tell me how you know."',
+      out:`Fewer finish in time, but the ones who do show you their reasoning. Two correct answers turn out to have shaky reasoning underneath. Good to know.` },
+    { text:'No time left. Wave goodbye.', T:0,E:0,D:0, cost:0,
+      out:`"Bye!" The class empties. You'll find out tomorrow how today went.` }
+   ]}
+];
+
+/* Whole-class checks so far */
+const priorChecks = () => state.checks.filter(id => id !== 'sunset');
+function lastCheckName(){
+  const order = SCENES.map(s => s.id);
+  const last = state.checks.slice().sort((a,b) => order.indexOf(b) - order.indexOf(a))[0];
+  return last ? 'the ' + SCENES.find(s => s.id === last).short : 'the trailhead';
+}
+/* "Guessing" at the Mountain Pass = no whole-class check since the Rocky Pass */
+const guessing = () => state.flags.blind || !state.checks.some(id => ['water','broken','campfire'].includes(id));
+
+/* Choices that come back later */
+function laterEffects(s, c){
+  const f = state.flags, out = [];
+  if (s.id === 'mountain' && guessing() && c.guessHurts)
+    out.push(`Two of the five you picked were fine. Two who needed help were never in the group.`);
+  if (s.id === 'sunset'){
+    const n = priorChecks().length;
+    if (c.all){
+      if (n === 0) out.push(`This is the first time today you've heard from every traveler. Several have been lost since the Fork, and there's no daylight left to go back for them.`);
+      else if (n >= 3) out.push(`Nothing here surprises you. You checked on the whole party ${n} times before sunset; this just confirms where tomorrow starts.`);
+      out.push(f.misLeft
+        ? `And there's the boulder from the Rocky Pass: four answers still say "{mis}."`
+        : `No sign of the Rocky Pass boulder. Your party moved it for good.`);
+    } else {
+      if (n === 0) out.push(`You never heard from the whole party today. Tomorrow starts with a guess.`);
+      if (f.misLeft) out.push(`Somewhere behind you, the Rocky Pass boulder may still be sitting in the trail. You'll find out tomorrow.`);
+    }
+    if (c.explains && f.toldAnswer) out.push(`Several explanations sound a lot like yours from the campfire. Word for word, in a few cases.`);
+  }
+  return out;
+}
+
+const EVENTS = [
+  { id:'tooth', day:-1, text:`{kid}'s little brother unmuted to announce he lost a tooth. Everyone has to see the tooth.` },
+  { id:'fever', day:-1, text:`A traveler has come down with breakout-room fever. Symptoms include muting, unmuting, and asking "can you hear me?" every forty seconds.` },
+  { id:'freeze', day:-2, text:`The internet ford runs shallow today. Video freezes for eight travelers mid-sentence. They unfreeze looking surprised.` },
+  { id:'announce', day:-2, text:`A storm rolls in: a school-wide announcement cuts into your class audio. It's about the bus schedule. This is a virtual school.` },
+  { id:'chart', day:1, text:`You find an abandoned wagon beside the trail. Inside: a perfectly good anchor chart. You save a minute of explaining.` },
+  { id:'chirp', day:-1, text:`A smoke detector with a dying battery chirps somewhere in {kid}'s house. Every thirty seconds. For the rest of class.` },
+  { id:'parent', day:0, text:`A parent leans into {kid}'s camera frame and waves enthusiastically.`,
+    choices:[ ['Wave back.', `The parent gives you a thumbs up. You've made an ally. {kid} is mortified.`],
+              ['Keep teaching.', `The parent keeps waving for a while. That's fine. {kid} is mortified either way.`] ] }
+];
+
+const IDENTITIES = {
+  evidence:   { name:'Evidence Hunter',        desc:`You didn't settle for the first hand up. You wanted to hear from all 27 travelers, and most of the time, you did.` },
+  discussion: { name:'Discussion Trailblazer', desc:`Your campfires run long because everyone's talking — and, remarkably, about math.` },
+  thinking:   { name:'Thinking Pioneer',       desc:`You kept handing students the problem before the answer. Their brains logged the most miles on this trip.` },
+  balanced:   { name:'Balanced Traveler',      desc:`Thinking, evidence, discussion: you packed a little of everything, and nothing fell out of the wagon.` },
+  explainer:  { name:'Professional Explainer', desc:`You explained beautifully. Your party enjoyed the view from the back of the wagon. Next trip, hand them the reins a little sooner.` },
+  speed:      { name:'Speed Runner',           desc:`You reached the destination with daylight to spare. A few travelers are still catching up, but what a time.` }
+};
+
+/* ============================================================
+   THE TRAIL GUIDE — Matthew on video. Until a clip is uploaded
+   (trail log > Trail Guide videos), players see this script as text.
+   Keep `script` matching what's said on camera; it doubles as the
+   transcript under each video.
+   ============================================================ */
+const GUIDE = {
+  intro: { title:'Welcome to the trail', where:'Plays after the teacher picks a grade band', secs:55,
+    note:'Your class today: {mins} minutes of daylight. The bars below track what your students get out of each choice: Thinking (did they reason, or watch?), Evidence (did you hear from all of them?), and Discourse (did they explain and respond to each other?).',
+    stage:'Start too close to the camera, squinting at it. Count on your fingers at "since," then give up.',
+    script:[
+      `Well, I'll be. A traveler! Haven't seen one of you since... Tuesday. Folks call me the Trail Guide. Been runnin' this trail thirty-one years. Maybe forty. Depends if you count the winter of '19, and I don't, on account of the ox.`,
+      `You'll be leadin' a party of 27 young travelers through one class period. That's all the daylight you get. Sun don't wait for nobody. I asked it to once. Real polite. Didn't care.`,
+      `Those bars down yonder tell you how your party's farin'. Ain't no wrong turns out here, just different ones. Every choice costs somethin' and buys somethin'. And the trail remembers. Trail remembers everything. Trail remembers what I did in '87.`,
+      `First stop's the General Store. Pack careful. Out here, things break. They break, and they don't tell you why.`
+    ]},
+  broken: { title:'The Broken Wagon', where:'Plays right after the wagon wheel cracks', secs:25,
+    stage:'Pop into frame from the side, already mid-sentence.',
+    script:[
+      `Heard that crack from three miles back. Woke up my mule. I don't have a mule.`,
+      `Lost a good man to a breakout room once. Sent him in to talk about fractions. Found him eventually. Took most of the winter of '19. He'd started a small farm.`,
+      `Well, don't look at me. I ain't a wheel man. Your party's waitin'.`
+    ]},
+  reveal: { title:'The pattern', where:'Plays when the teacher reaches Student Thinking', secs:30,
+    stage:'Applaud slowly. Too long. Stop abruptly.',
+    script:[
+      `You made it! Not every party does. Some of 'em are still down by the river, arguin' about the chat.`,
+      `Now I'll tell you somethin' I didn't mention back at the trailhead, on account of I forgot. Every time you genuinely found out what your students were thinkin', the same pattern showed up. And it didn't show up once. It kept comin' back around. Like a coyote. Or a cousin.`
+    ]},
+  meaning: { title:'What it means', where:'Plays after the Teach, Try, Discuss, Repeat trail map', secs:55,
+    stage:'Lean in close for the first line. The rest is the serious part: slow down and play it straight.',
+    script:[
+      `Now listen close, 'cause I'm only sayin' this twice, and the first time was to a cactus.`,
+      `Teach doesn't mean lecture. Try doesn't mean worksheet. And Discuss sure doesn't mean draggin' every student onto a microphone. Chat, polls, whiteboards, submitted work. Any of 'em can work, long as you hear from every student, not just the ones who volunteer.`,
+      `Teach, try, discuss, and repeat it as many times as the trail needs. Then one last check before sundown. Here's where most folks go wrong: that last check is the only one they do. By the time you find out at the end of the trail, there's no daylight left to do anything about it.`
+    ]},
+  farewell: { title:'Farewell', where:'Plays after "Who is doing the thinking?"', secs:40,
+    stage:'Play the first part straight. Tip your hat on "partner." Walk off camera. Hold the empty frame for three seconds. Lean back in for the last line.',
+    script:[
+      `If you're doin' all the explainin'... all the solvin'... all the questionin'... and all the answerin'... well... you're gettin' one heck of an education. Your students need one too.`,
+      `The tool can fail. The strategy doesn't have to. Safe travels, partner.`
+    ],
+    returnLine:`...And wait the full ten seconds. I'll know. Somehow, I always know.` }
+};
+const GUIDE_SLOTS = Object.keys(GUIDE);
+const guideText = g => g.script.join(' ') + (g.returnLine ? ' ' + g.returnLine : '');
+
+function guideScreen(slot, done, label){
+  const g = GUIDE[slot], id = state.guide[slot];
+  if (!id) return textGuide(slot, done, label);
+  stopTune();
+  setPanel(`
+    <div class="speaker">The Trail Guide</div>
+    <video class="gvideo" src="/_blob/${esc(id)}" controls playsinline preload="metadata"></video>
+    <details class="script"><summary>Read what the Trail Guide says</summary><p>${fmt(guideText(g))}</p></details>
+    ${g.note ? `<p class="small">${fmt(g.note)}</p>` : ''}
+    <button class="btn" id="next">${esc(label || 'Continue')}</button>`);
+  const v = panel.querySelector('video');
+  v.addEventListener('ended', () => { const b = document.getElementById('next'); if (b) b.focus({ preventScroll:true }); });
+  v.addEventListener('error', () => textGuide(slot, done, label));
+  try { const p = v.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  onBtn('next', () => { v.pause(); done(); });
+}
+
+function textGuide(slot, done, label){
+  const g = GUIDE[slot]; let i = 0;
+  const render = () => {
+    const last = i === g.script.length - 1;
+    setPanel(`
+      <div class="guide">
+        <canvas class="portrait" width="16" height="16" aria-hidden="true"></canvas>
+        <div>
+          <div class="speaker">The Trail Guide</div>
+          <p id="gl">${fmt(g.script[i])}</p>
+          ${last && g.note ? `<p class="small">${fmt(g.note)}</p>` : ''}
+          <button class="btn" id="next" data-focus>${last ? (g.returnLine ? 'Tip your hat' : esc(label || 'Continue')) : 'Continue'}</button>
+        </div>
+      </div>`);
+    const pc = panel.querySelector('.portrait'); drawPortrait(pc);
+    onBtn('next', () => {
+      if (!last){ i++; return render(); }
+      if (!g.returnLine) return done();
+      document.getElementById('next').remove();
+      pc.classList.add('gone');
+      document.getElementById('gl').textContent = 'The Trail Guide rides off toward the horizon.';
+      later(() => {
+        pc.classList.remove('gone');
+        const p = document.getElementById('gl'); p.innerHTML = fmt(g.returnLine);
+        const b = document.createElement('button'); b.className = 'btn'; b.textContent = label || 'Continue';
+        b.addEventListener('click', done); p.after(b); b.focus({ preventScroll:true });
+      }, REDUCE ? 400 : 1900);
+    });
+  };
+  render();
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  name:'', band:null, dayMax:30, daylight:30, disp:30,
+  scores:{T:0,E:0,D:0}, maxSoFar:{T:0,E:0,D:0}, casey:0, oneVoice:0,
+  pack:new Set(), broken:null, lastBroken:null, flags:{}, eventsSeen:new Set(), eventCount:0,
+  picks:{}, picksSaved:false, checks:[], hunches:0, hunchTotal:0, selfChecks:null, plan:null, vol:'Ava', first:'Ava',
+  markers:[], guide:{}, saved:null,
+  landmark:'trailhead', night:0, scroll:0, travel:null, slide:1, moving:false
+};
+function resetJourney(){
+  const mins = (BANDS[state.band] || { mins:30 }).mins;
+  Object.assign(state, { dayMax:mins, daylight:mins, disp:mins,
+    scores:{T:0,E:0,D:0}, maxSoFar:{T:0,E:0,D:0}, casey:0, oneVoice:0,
+    pack:new Set(), broken:null, lastBroken:null, flags:{}, eventsSeen:new Set(), eventCount:0,
+    picks:{}, picksSaved:false, checks:[], hunches:0, hunchTotal:0, selfChecks:null, plan:null, vol:CLASSMATES[rand(CLASSMATES.length)], first:'Ava', saved:null,
+    landmark:'trailhead', night:0, travel:null, slide:1, moving:false });
+}
+const BAND = () => BANDS[state.band] || BANDS.e35;
+const IS_K2 = () => !!BAND().k2;
+const tx = (o, f) => (IS_K2() && o['k2' + f[0].toUpperCase() + f.slice(1)]) || o[f];
+function rand(n){ return Math.floor(Math.random() * n); }
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const scaledCost = c => Math.round((c || 0) * state.dayMax / 30);
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmt(str, extra){
+  const b = BAND(), x = extra || {};
+  const bt = state.broken || state.lastBroken;
+  const tool = bt ? TOOLS[bt].name.toLowerCase() : 'polling tool';
+  return esc(str).replace(/\{name\}/g, esc(state.name || 'Traveler'))
+    .replace(/\{topic\}/g, esc(b.topic)).replace(/\{task\}/g, esc(b.task))
+    .replace(/\{mis\}/g, esc(b.mis)).replace(/\{deep\}/g, esc(b.deep)).replace(/\{next\}/g, esc(b.next)).replace(/\{yn\}/g, esc(b.yn))
+    .replace(/\{mins\}/g, esc(state.dayMax))
+    .replace(/\{vol\}/g, esc(state.vol)).replace(/\{first\}/g, esc(state.first))
+    .replace(/\{tool\}/g, esc(x.tool || tool)).replace(/\{kid\}/g, esc(x.kid || 'Malik'));
+}
+
+/* ============================================================
+   SOUND — tiny chiptune effects, all generated in the browser
+   ============================================================ */
+const sfx = { ctx:null, master:null, on:true, tune:null };
+try { sfx.on = localStorage.getItem('learning-trail-sound') !== 'off'; } catch (e) {}
+function audio(){
+  if (!sfx.on) return null;
+  try {
+    if (!sfx.ctx){
+      sfx.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      sfx.master = sfx.ctx.createGain(); sfx.master.gain.value = 0.16; sfx.master.connect(sfx.ctx.destination);
+    }
+    if (sfx.ctx.state === 'suspended') sfx.ctx.resume();
+    return sfx.ctx;
+  } catch (e) { return null; }
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+function tone(freq, start, dur, type, vol){
+  const a = audio(); if (!a) return null;
+  const t = a.currentTime + start, o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol || 0.8, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(sfx.master); o.start(t); o.stop(t + dur + 0.03);
+  return o;
+}
+function noise(start, dur, vol){
+  const a = audio(); if (!a) return;
+  const len = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = 1800; g.gain.value = vol || 0.5;
+  src.buffer = buf; src.connect(f); f.connect(g); g.connect(sfx.master); src.start(a.currentTime + start);
+}
+const SFX = {
+  blip(){ tone(880, 0, 0.05, 'square', 0.4); },
+  up(){ tone(660, 0, 0.06, 'square', 0.35); tone(990, 0.06, 0.08, 'square', 0.35); },
+  arrive(){ [67,72,76].forEach((m,i) => tone(hz(m), i * 0.09, 0.14, 'square', 0.5)); },
+  event(){ [72,76,79,84].forEach((m,i) => tone(hz(m), i * 0.07, 0.1, 'triangle', 0.7)); },
+  crack(){ noise(0, 0.3, 0.9); tone(90, 0, 0.25, 'sawtooth', 0.6); },
+  crackle(){ noise(0, 0.04 + Math.random() * 0.05, 0.25 + Math.random() * 0.2); },
+  key(){ tone(1400 + Math.random() * 300, 0, 0.02, 'square', 0.12); },
+  burst(){ for (let i = 0; i < 12; i++) tone(700 + Math.random() * 700, i * 0.025, 0.05, 'square', 0.25); },
+  fanfare(){ [[67,0],[72,0.15],[76,0.3],[79,0.45],[76,0.65],[79,0.8],[84,1.0]].forEach(([m,t]) => tone(hz(m), t, t === 1.0 ? 0.6 : 0.16, 'square', 0.5)); }
+};
+/* An original trotting tune for the wagon */
+function startTune(dur){
+  stopTune(); if (!audio()) return;
+  const mel = [67,71,74,71,72,71,69,67,69,71,72,74,71,69,67,0];
+  const bass = [43,50,43,50,48,55,43,50];
+  const step = 0.19, nodes = [];
+  for (let k = 0; k * step < dur / 1000; k++){
+    const m = mel[k % mel.length]; if (m) nodes.push(tone(hz(m), k * step, step * 0.9, 'square', 0.3));
+    if (k % 2 === 0) nodes.push(tone(hz(bass[(k / 2) % bass.length]), k * step, step * 1.8, 'triangle', 0.5));
+  }
+  sfx.tune = nodes.filter(Boolean);
+}
+function stopTune(){ (sfx.tune || []).forEach(o => { try { o.stop(); } catch (e) {} }); sfx.tune = null; }
+function setSound(on){
+  sfx.on = on;
+  try { localStorage.setItem('learning-trail-sound', on ? 'on' : 'off'); } catch (e) {}
+  if (!on) stopTune();
+  const b = document.getElementById('mute');
+  b.textContent = on ? 'Sound: on' : 'Sound: off'; b.setAttribute('aria-pressed', String(!on));
+}
+
+/* ============================================================
+   SHARED TRAIL DATA (completion log, trail markers, anonymous tallies)
+   ============================================================ */
+const cap = { db:null, user:null, uid:null, isOwner:false, downloads:null };
+let screen = 'title';
+(async () => {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    cap.db = db; cap.user = user;
+    if (user){ cap.uid = await user.id(); cap.isOwner = await user.isOwner(); }
+    if (db){
+      db.collection('tombstones').onSnapshot(
+        snap => { state.markers = snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(m => m.text && m.landmark); },
+        () => {});
+      db.doc('config/guide').onSnapshot(
+        snap => { state.guide = snap.exists ? { ...snap.data() } : {}; },
+        () => {});
+    }
+    if (screen === 'title') showTitle();
+    cap.downloads = await claude.use('downloads');
+  } catch (e) { /* the game works without shared data */ }
+})();
+const markersFor = lm => state.markers.filter(m => m.landmark === lm);
+function markerHtml(lm){
+  return shuffle(markersFor(lm)).slice(0, 2)
+    .map(m => `<p class="marker">A marker by the trail reads: <q>${esc(m.text)}</q> — a fellow traveler</p>`).join('');
+}
+async function saveCompletion(plan){
+  if (!cap.db || !cap.uid) return 'offline';
+  try {
+    const ref = cap.db.doc('completions/' + cap.uid);
+    const prev = await ref.get();
+    const now = new Date().toISOString();
+    const p = prev.exists ? prev.data() : {};
+    await ref.set({ name: state.name, gradeBand: BAND().label, completedAt: now,
+      firstCompletedAt: p.firstCompletedAt || now, plays: (p.plays || 0) + 1, plan });
+    return 'saved';
+  } catch (e) { return 'failed'; }
+}
+/* Choices are saved with no name, no account id and no timestamp,
+   so nobody (including the owner) can tie them to a teacher. */
+async function savePicks(){
+  if (!cap.db || state.picksSaved) return;
+  state.picksSaved = true;
+  try { await cap.db.collection('picks').add({ band: state.band, picks: state.picks, pack: [...state.pack], selfChecks: state.selfChecks, trailChecks: state.checks.length }); } catch (e) {}
+}
+
+/* ============================================================
+   PANEL, KEYS, STATUS
+   ============================================================ */
+const panel = document.getElementById('panel');
+const banner = document.getElementById('banner');
+const hud = document.getElementById('hud');
+const hudWagon = document.getElementById('hudWagon');
+let digitHandler = null, timers = [];
+function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+function setPanel(html, onDigit){
+  clearTimers();
+  panel.innerHTML = html;
+  digitHandler = onDigit || null;
+  const f = panel.querySelector('[data-focus]') || panel.querySelector('button:not(:disabled), input, textarea');
+  if (f) f.focus({ preventScroll:true });
+}
+document.addEventListener('keydown', e => {
+  const t = e.target && e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  if (e.key === 'm' || e.key === 'M'){ setSound(!sfx.on); return; }
+  if (/^[1-9]$/.test(e.key) && digitHandler){ e.preventDefault(); SFX.blip(); digitHandler(+e.key - 1); }
+});
+panel.addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) SFX.blip(); });
+document.getElementById('mute').addEventListener('click', () => setSound(!sfx.on));
+function onBtn(id, fn){ const b = document.getElementById(id); if (b) b.addEventListener('click', fn); }
+
+function choiceList(list){
+  return `<ol class="choices">${list.map((c,i) => `<li><button class="choice${c.on ? ' on' : ''}" data-n="${i}" ${c.disabled ? 'disabled' : ''}><span class="key">${i+1}.</span><span>${c.label}${c.note ? ` <span class="note">(${esc(c.note)})</span>` : ''}</span></button></li>`).join('')}</ol>`;
+}
+function wireChoices(list, fn){
+  panel.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => fn(+b.dataset.n)));
+  return n => { if (list[n] && !list[n].disabled) fn(n); };
+}
+
+function renderWagonHud(){
+  hudWagon.innerHTML = 'Wagon: ' + (state.pack.size
+    ? [...state.pack].map(t => state.broken === t ? `<span class="bk">${TOOLS[t].short} (broken)</span>` : TOOLS[t].short).join(', ')
+    : 'chat, mics, paper');
+}
+
+const statusEl = document.getElementById('trailstatus');
+const STATS = [['day','Daylight'],['T','Thinking'],['E','Evidence'],['D','Discourse']];
+statusEl.innerHTML = STATS.map(([k,l]) =>
+  `<div class="stat" id="st-${k}"><div class="lbl"><span>${l}</span><span class="word"></span></div><div class="meter m-${k}"><i></i></div></div>`).join('');
+const wordFor = r => r >= 0.7 ? 'Strong' : r >= 0.4 ? 'Steady' : r > 0 ? 'Thin' : 'Quiet';
+function updateStatus(changed){
+  let any = false;
+  ['T','E','D'].forEach(k => {
+    const max = state.maxSoFar[k], r = max ? state.scores[k] / max : 0;
+    const el = document.getElementById('st-' + k);
+    el.querySelector('i').style.width = (r * 100) + '%';
+    el.querySelector('.word').textContent = max ? wordFor(r) : '—';
+    el.classList.remove('up');
+    if (changed && changed[k]){ void el.offsetWidth; el.classList.add('up'); any = true; }
+  });
+  if (any) SFX.up();
+}
+let lastDay = null;
+function updateDaylight(){
+  const v = clamp(state.disp / state.dayMax, 0, 1);
+  if (v === lastDay) return; lastDay = v;
+  const el = document.getElementById('st-day');
+  el.querySelector('i').style.width = (v * 100) + '%';
+  el.querySelector('.word').textContent = Math.max(0, Math.round(state.disp)) + ' min';
+}
+
+/* ============================================================
+   RESUME — progress is saved in this browser at each landmark,
+   so a teacher who closes the tab picks up where they left off.
+   ============================================================ */
+const SAVE_KEY = 'learning-trail-progress-v1';
+const SAVE_FIELDS = ['name','band','dayMax','daylight','scores','maxSoFar','casey','oneVoice','broken','lastBroken','flags',
+  'eventCount','picks','picksSaved','checks','hunches','hunchTotal','selfChecks','plan','vol','first'];
+function checkpoint(where){
+  try {
+    const st = {}; SAVE_FIELDS.forEach(k => st[k] = state[k]);
+    st.pack = [...state.pack]; st.eventsSeen = [...state.eventsSeen];
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ v:1, at:Date.now(), where, st }));
+  } catch (e) {}
+}
+function loadSave(){
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (d && d.v === 1 && d.st && BANDS[d.st.band] && Date.now() - d.at < 60 * 864e5) return d;
+  } catch (e) {}
+  return null;
+}
+function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+function whereLabel(w){
+  if (w.scene != null) return SCENES[w.scene].name.split(':')[0];
+  return { store:'the General Store', arrival:'Student Thinking', planner:'your lesson plan' }[w.stage] || 'the trail';
+}
+function resumeJourney(d){
+  Object.assign(state, d.st, { pack:new Set(d.st.pack || []), eventsSeen:new Set(d.st.eventsSeen || []),
+    disp:d.st.daylight, travel:null, moving:false, slide:1 });
+  screen = 'game';
+  statusEl.hidden = false; hud.hidden = false; lastDay = null;
+  updateStatus(); updateDaylight(); renderWagonHud();
+  const w = d.where;
+  if (w.scene != null){ const sc = SCENES[w.scene]; state.landmark = sc.landmark; state.night = sc.night; return showScene(w.scene); }
+  state.night = 0;
+  if (w.stage === 'store'){ state.landmark = 'trailhead'; return showStore(); }
+  state.landmark = 'destination';
+  if (w.stage === 'planner') return showPlanner();
+  return showArrival();
+}
+
+/* ============================================================
+   OPENING SCREENS
+   ============================================================ */
+function showTitle(){
+  screen = 'title';
+  hud.hidden = true; statusEl.hidden = true; banner.textContent = '';
+  state.landmark = 'trailhead'; state.night = 0; state.disp = state.dayMax;
+  const saved = loadSave();
+  const opts = saved
+    ? [{ label:`Continue ${saved.st.name}'s journey (at ${whereLabel(saved.where)})`, go:() => resumeJourney(saved) },
+       { label:'Start a new journey', go:() => { clearSave(); showRegistry(); } },
+       { label:'Learn about the trail', go:showAbout }]
+    : [{ label:'Travel the trail', go:showRegistry }, { label:'Learn about the trail', go:showAbout }];
+  if (cap.isOwner) opts.push({ label:'Open the trail log', go:showTrailLog });
+  setPanel(`
+    <h1 class="title">The Learning Trail</h1>
+    <p class="sub">A GCA adventure to Student Thinking</p>
+    <p>Your party of 27 is hitched and waiting at the trailhead. Ahead lie one class period of daylight, nine landmarks, and a destination called Student Thinking.</p>
+    <p class="prompt">You may:</p>
+    ${choiceList(opts.map(o => ({ label: esc(o.label) })))}
+    <p class="prompt">What is your choice?</p>`);
+  digitHandler = wireChoices(opts, n => opts[n].go());
+}
+
+function showAbout(){
+  screen = 'about';
+  setPanel(`
+    <h2 class="place">About the trail</h2>
+    <p>The Learning Trail is a PLC you play instead of watch. You'll lead a party of 27 students through one class period, making the same calls you make every day.</p>
+    <p>There are no wrong turns, just different ones. Every choice costs some daylight and buys something for your students, and the trail remembers what you chose.</p>
+    <p>Nothing you choose is sent anywhere. Your progress is kept in this browser only, so you can close the tab and pick up where you left off.</p>
+    <p>Turn your sound on if you can. When you reach Student Thinking, the trail will show you what it was teaching all along.</p>
+    <button class="btn" id="go" data-focus>Travel the trail</button>
+    <button class="btn quiet" id="back">Back</button>`);
+  onBtn('go', showRegistry);
+  onBtn('back', showTitle);
+}
+
+function showRegistry(){
+  screen = 'registry';
+  setPanel(`
+    <h2 class="place">Traveler Registry</h2>
+    <div class="ledger">
+      <p>Every party needs a trail boss. Sign the registry to set out.</p>
+      <label for="nm">Your name</label>
+      <input type="text" id="nm" maxlength="40" autocomplete="name" value="${esc(state.name)}" data-focus>
+      <p class="warn" id="nmErr" hidden>Type your name to sign the registry.</p>
+      <button class="btn" id="sign">Sign the registry</button>
+    </div>`);
+  const input = document.getElementById('nm');
+  const submit = () => {
+    const v = input.value.trim().replace(/\s+/g,' ');
+    if (!v){ document.getElementById('nmErr').hidden = false; input.focus(); return; }
+    state.name = v; showBand();
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  onBtn('sign', submit);
+}
+
+function showBand(){
+  screen = 'band';
+  const keys = Object.keys(BANDS);
+  const list = keys.map(k => ({ label: `${esc(BANDS[k].label)} <span class="note">${BANDS[k].mins}-minute class</span>` }));
+  const pick = i => { state.band = keys[i]; resetJourney(); introPages(); };
+  setPanel(`
+    <h2 class="place">Choose your party</h2>
+    <p>${fmt('Which travelers ride with you, {name}?')}</p>
+    ${choiceList(list)}
+    <p class="prompt">What is your choice? Press 1–4 or click.</p>`);
+  digitHandler = wireChoices(list, pick);
+}
+
+function pages(list, done, doneLabel, title){
+  let i = 0;
+  const render = () => {
+    const last = i === list.length - 1;
+    setPanel(`
+      ${title ? `<h2 class="place">${esc(title)}</h2>` : ''}
+      <p>${fmt(list[i])}</p>
+      <button class="btn" id="next" data-focus>${last ? esc(doneLabel || 'Continue') : 'Continue'}</button>`);
+    onBtn('next', () => { if (last) done(); else { i++; render(); } });
+  };
+  render();
+}
+
+function introPages(){
+  screen = 'game';
+  statusEl.hidden = false; hud.hidden = false; lastDay = null;
+  updateStatus(); updateDaylight(); renderWagonHud();
+  guideScreen('intro', showStore, 'Head to the store');
+}
+
+function showStore(){
+  checkpoint({ stage:'store' });
+  const picks = new Set(state.pack);
+  const render = () => {
+    const list = TOOL_ORDER.map(k => ({ label:`[${picks.has(k) ? 'x' : ' '}] ${esc(TOOLS[k].name)}: ${esc(TOOLS[k].desc)}`, on:picks.has(k) }));
+    setPanel(`
+      <h2 class="place">The General Store</h2>
+      <p>Chat, microphones, cameras, and paper come standard. Your wagon has room for three more tools. Whatever you leave on the shelf, you won't have on the trail.</p>
+      ${choiceList(list)}
+      <button class="btn" id="load" ${picks.size === 3 ? 'data-focus' : 'disabled'}>Load the wagon (${picks.size} of 3)</button>`);
+    const toggle = n => {
+      const k = TOOL_ORDER[n]; if (!k) return;
+      if (picks.has(k)) picks.delete(k); else if (picks.size < 3) picks.add(k); else return;
+      render();
+      const btn = panel.querySelector(`.choice[data-n="${n}"]`); if (btn && picks.size < 3) btn.focus({ preventScroll:true });
+    };
+    digitHandler = wireChoices(list, toggle);
+    onBtn('load', () => { state.pack = new Set(picks); renderWagonHud(); showScene(0); });
+  };
+  render();
+}
+
+/* ============================================================
+   SCENES
+   ============================================================ */
+function toolState(needs){
+  if (!needs) return { ok:true };
+  if (needs.some(t => state.pack.has(t) && state.broken !== t)) return { ok:true };
+  const name = TOOLS[needs[0]].name.toLowerCase();
+  if (needs.some(t => state.broken === t)) return { ok:false, note:`your ${name} is broken` };
+  return { ok:false, note:`needs ${needs.length > 1 ? 'polls or exit tickets' : 'the ' + name}, not in your wagon` };
+}
+function sceneHead(s){
+  const echo = s.echo ? s.echo(state.flags) : '';
+  return `<h2 class="place">${esc(s.name)}</h2>${markerHtml(s.id)}<p>${fmt(tx(s,'narr'))}</p>${echo ? `<p class="echo">${fmt(echo)}</p>` : ''}`;
+}
+
+function showScene(i){
+  checkpoint({ scene:i });
+  const s = SCENES[i];
+  banner.textContent = '';
+  if (s.id === 'broken' && !state.flags.wheelCracked){
+    state.flags.wheelCracked = true;
+    state.broken = ['poll','board','stamps','exit','breakout'].find(t => state.pack.has(t)) || 'poll';
+    renderWagonHud(); SFX.crack();
+    return guideScreen('broken', () => showScene(i), 'Back to the wagon');
+  }
+  if (s.special === 'river') return riverScene(s, i);
+  if (s.special === 'campfire') return campfireScene(s, i);
+  showChoices(s, i, sceneHead(s));
+}
+
+function showChoices(s, i, head){
+  const list = s.choices.map(c => { const st = toolState(c.needs); return { label:fmt(tx(c,'text')), disabled:!st.ok, note:st.note }; });
+  setPanel(`${head}${choiceList(list)}<p class="prompt">What is your choice?</p>`);
+  digitHandler = wireChoices(list, n => choose(i, n, list));
+}
+
+function applyChoice(s, c, pool, base){
+  digitHandler = null;
+  const b = base || { T:0, E:0, D:0, cost:0 };
+  ['T','E','D'].forEach(k => {
+    state.scores[k] += (c[k] || 0) + (b[k] || 0);
+    state.maxSoFar[k] += Math.max(...pool.map(o => o[k] || 0)) + (b.maxAdd ? b.maxAdd[k] : 0);
+  });
+  state.casey += c.casey || 0; state.oneVoice += c.oneVoice || 0;
+  if (c.flag) state.flags[c.flag] = true;
+  if (c.all && !state.checks.includes(s.id)) state.checks.push(s.id);
+  if (c.fix){ state.lastBroken = state.broken; state.broken = null; }
+  const cost = scaledCost((c.cost || 0) + (b.cost || 0));
+  const over = cost > state.daylight;
+  state.daylight = Math.max(0, state.daylight - cost);
+  const gained = ['T','E','D'].filter(k => (c[k] || 0) + (b[k] || 0) > 0);
+  updateStatus({ T:gained.includes('T'), E:gained.includes('E'), D:gained.includes('D') });
+  renderWagonHud();
+  const NAMES = { T:'Thinking', E:'Evidence', D:'Discourse' };
+  const moved = gained.length
+    ? `<p class="moved">Your party gained: <b>${gained.map(k => NAMES[k]).join(', ')}</b>. Daylight spent: ${cost} min.</p>`
+    : `<p class="moved">Daylight spent: ${cost} min. Not much to report from this stretch.</p>`;
+  return { moved, over };
+}
+
+function askPrediction(i, n, list){
+  const s = SCENES[i], c = s.choices[n];
+  const opts = s.predict.opts.map(o => ({ label: esc(o) }));
+  setPanel(`
+    <h2 class="place">${esc(s.name)}</h2>
+    <p class="picked">You chose: ${fmt(tx(c,'text'))}</p>
+    <p>Before you see what happens, make a call. ${esc(s.predict.q)}</p>
+    ${choiceList(opts)}
+    <p class="prompt">What's your hunch?</p>`);
+  digitHandler = wireChoices(opts, h => choose(i, n, list, h));
+}
+function hunchHtml(s, n, h){
+  const key = s.predict.keys[n], ok = key === h;
+  state.hunchTotal++; if (ok) state.hunches++;
+  return ok
+    ? `<p class="status">Your hunch was right: ${esc(s.predict.opts[h].toLowerCase())}.</p>`
+    : `<p class="echo">You expected: ${esc(s.predict.opts[h].toLowerCase())}. What happened instead: ${esc(s.predict.opts[key].toLowerCase())}.</p>`;
+}
+
+function choose(i, n, list, hunch){
+  const s = SCENES[i], c = s.choices[n];
+  if (s.predict && hunch === undefined) return askPrediction(i, n, list);
+  state.picks[s.id] = 'c' + n;
+  const pre = s.predict ? hunchHtml(s, n, hunch) : '';
+  const pool = s.choices.filter((o, k) => !list[k].disabled);
+  const res = applyChoice(s, c, pool);
+  if (c.waterfall) return runWaterfall(() => showConsequence(i, s, c, res, panel.querySelector('#chat') ? panel.querySelector('#chat').outerHTML : ''));
+  showConsequence(i, s, c, res, pre);
+}
+
+function showConsequence(i, s, c, res, pre){
+  const last = i === SCENES.length - 1;
+  const echoes = laterEffects(s, c);
+  const status = tx(c, 'status');
+  setPanel(`
+    <h2 class="place">${esc(s.name)}</h2>
+    <p class="picked">You chose: ${fmt(tx(c,'text'))}</p>
+    ${pre}
+    <p>${fmt(tx(c,'out'))}</p>
+    ${status ? `<p class="status ${c.oneVoice ? 'one' : ''}">${fmt(status)}</p>` : ''}
+    ${echoes.map(e => `<p class="echo">${fmt(e)}</p>`).join('')}
+    ${res.moved}
+    ${res.over ? `<p class="warn">The daylight ran out before this stretch was done. Your party will finish it tomorrow.</p>` : ''}
+    <button class="btn" id="cont" data-focus>${last ? 'Ride for the destination' : 'Continue west'}</button>`);
+  const ch = panel.querySelector('.chatlog'); if (ch) ch.scrollTop = ch.scrollHeight;
+  onBtn('cont', () => {
+    if (!last) travelTo(SCENES[i+1], () => maybeEvent(i+1, () => showScene(i+1)));
+    else travelTo({ landmark:'destination', night:0 }, showArrival);
+  });
+}
+
+/* ---------- River Crossing: the copycat mini-game ---------- */
+const lineHtml = (who, text) => IS_K2()
+  ? `<span class="who">${esc(who)}</span> holds up: ${esc(text)}`
+  : `<span class="who">${esc(who)}:</span> ${esc(text)}`;
+
+function riverScene(s, i){
+  const b = BAND(), k2 = IS_K2();
+  const others = shuffle(CLASSMATES);
+  state.first = others[7];
+  const copiers = others.slice(0, 5).map(who => ({ who, copied:false }));
+  shuffle([0,1,2,3,4]).slice(0, 3).forEach(k => copiers[k].copied = true);
+  const stream = [
+    { who:state.first, text:b.fast },
+    ...copiers.map((c, k) => ({ who:c.who, text:b.fast, flag:k })),
+    k2 ? { who:others[5], text:'(their camera is pointed at the ceiling)' } : { who:others[5], text:'wait what was the question' },
+    k2 ? { who:others[6], text:'a drawing of their dog' } : { who:others[6], text:'brb' }
+  ];
+  setPanel(`${sceneHead(s)}<div class="chatlog" id="chat" role="log" aria-label="${k2 ? 'Camera grid' : 'Class chat'}"></div><div id="riverNext"></div>`);
+  const chat = document.getElementById('chat');
+  const flagged = new Set();
+  stream.forEach((m, k) => later(() => {
+    const el = document.createElement(m.flag !== undefined ? 'button' : 'div');
+    el.className = m.flag !== undefined ? 'msg' : 'line';
+    el.innerHTML = lineHtml(m.who, m.text) + '<span class="tag"></span>';
+    if (m.flag !== undefined){
+      el.dataset.f = m.flag;
+      el.setAttribute('aria-pressed', 'false');
+      el.addEventListener('click', () => {
+        if (el.disabled) return;
+        const on = !flagged.has(m.flag);
+        on ? flagged.add(m.flag) : flagged.delete(m.flag);
+        el.classList.toggle('flagged', on); el.setAttribute('aria-pressed', String(on));
+      });
+    }
+    chat.appendChild(el); chat.scrollTop = chat.scrollHeight; SFX.key();
+    if (k === stream.length - 1) later(askFlags, 500);
+  }, (REDUCE ? 200 : 750) * (k + 1)));
+
+  function askFlags(){
+    document.getElementById('riverNext').innerHTML = k2
+      ? `<p>${esc(state.first)} held up a board in two seconds. Then five more boards came up showing the exact same thing, backwards 6 and all. Click the boards you think were copied from ${esc(state.first)}.</p>`
+      : `<p>${esc(state.first)} answered in two seconds. Then five more travelers posted the exact same answer, typo and all. Click the answers you think were copied from ${esc(state.first)}.</p>`;
+    document.getElementById('riverNext').innerHTML += `<button class="btn" id="check" data-focus>Check my hunch</button>`;
+    document.getElementById('check').focus({ preventScroll:true });
+    onBtn('check', reveal);
+  }
+  function reveal(){
+    chat.querySelectorAll('.msg').forEach(el => {
+      const c = copiers[+el.dataset.f];
+      el.disabled = true;
+      const tag = el.querySelector('.tag');
+      tag.textContent = c.copied ? 'copied ' + state.first : 'solved it';
+      tag.className = 'tag ' + (c.copied ? 'cp' : 'own');
+    });
+    const hits = copiers.filter((c, k) => c.copied === flagged.has(k)).length;
+    const where = k2 ? 'on a camera grid where everyone can see everyone\u2019s board' : 'in an open chat';
+    document.getElementById('riverNext').innerHTML = `
+      <p>You called ${hits} of 5 correctly. Here's the trouble: ${where}, a copied answer and an independent one look exactly the same. ${hits >= 4 ? 'Good instincts, but instincts aren\u2019t evidence.' : 'Nobody could have told from this alone.'}</p>
+      <button class="btn" id="decide" data-focus>Decide what to do</button>`;
+    document.getElementById('decide').focus({ preventScroll:true });
+    onBtn('decide', () => showChoices(s, i, `<h2 class="place">${esc(s.name)}</h2><p>Is this independent evidence, or is the party following ${esc(state.first)} across the river?</p>`));
+  }
+}
+
+function runWaterfall(done){
+  const b = BAND(), k2 = IS_K2();
+  setPanel(`<h2 class="place">River Crossing: The Copycat</h2>
+    <p>${k2 ? '"Draw your answer and keep your board face-down. Flip it when I say go."' : '"Type your answer, but don\u2019t press Enter until I say go."'}</p>
+    <div class="chatlog" id="chat" role="log" aria-label="${k2 ? 'Camera grid' : 'Class chat'}"></div>`);
+  const chat = document.getElementById('chat');
+  const say = (html, cls) => { const d = document.createElement('div'); d.className = 'line ' + (cls || ''); d.innerHTML = html; chat.appendChild(d); };
+  const step = REDUCE ? 250 : 700;
+  ['3...','2...','1...','GO!'].forEach((t, k) => later(() => { say(t, 'countdown'); SFX.blip(); }, step * (k + 1)));
+  later(() => {
+    const names = shuffle(CLASSMATES.filter(n => n !== state.first)).slice(0, 20);
+    const lines = names.map((n, k) => ({ who:n, text: k < 3 ? b.wrong : b.right[k % b.right.length], cls: k < 3 ? 'errline' : '' }));
+    lines.push({ who:state.first, text:b.fast, cls:'' });
+    lines.push({ who:'Casey', text:b.right[2], cls:'caseyline' });
+    shuffle(lines).forEach(l => say(lineHtml(l.who, l.text), l.cls));
+    chat.scrollTop = 0; SFX.burst();
+    later(done, REDUCE ? 400 : 1600);
+  }, step * 5);
+}
+
+/* ---------- Campfire: you have to sit in the silence ---------- */
+function campfireScene(s, i){
+  const SECS = 10, k2 = IS_K2();
+  setPanel(`${sceneHead(s)}
+    <p class="moved" id="amb">${k2 ? 'Nobody unmutes. Twenty-seven small faces look back at you.' : 'Nobody unmutes. The chat is empty.'}</p>
+    <div class="silence" id="sil" role="img" aria-label="Seconds of silence: 0 of ${SECS}">${'<span></span>'.repeat(SECS)}</div>
+    <div id="cf">${choiceList([{ label: esc(s.early.text) }, { label: esc(s.callOn.text) }])}</div>`);
+  const pickEarly = n => {
+    const c = n === 1 ? s.callOn : s.early;
+    state.picks.campfire = n === 1 ? 'callOn' : 'early';
+    const pool = [s.early, ...s.choices.map(c => ({ T:c.T + s.wait.T, E:c.E, D:c.D }))];
+    const res = applyChoice(s, c, pool);
+    showConsequence(i, s, c, res, '');
+  };
+  digitHandler = wireChoices([{}, {}], pickEarly);
+  for (let ms = 300; ms < SECS * 1000; ms += 250 + rand(500)) later(SFX.crackle, ms);
+  const amb = ['Somewhere, a coyote howls.', 'A cricket. Then another cricket.', 'Someone\u2019s dog barks through an open mic.', 'The fire pops. Still nothing.'];
+  for (let t = 1; t <= SECS; t++) later(() => {
+    document.querySelectorAll('#sil span').forEach((bx, k) => bx.classList.toggle('on', k < t));
+    document.getElementById('sil').setAttribute('aria-label', `Seconds of silence: ${t} of ${SECS}`);
+    if (t % 3 === 0) document.getElementById('amb').textContent = amb[(t / 3 - 1) % amb.length];
+    if (t === SECS) studentSpeaks();
+  }, t * 1000);
+
+  function studentSpeaks(){
+    digitHandler = null;
+    document.getElementById('cf').innerHTML = '';
+    document.getElementById('amb').textContent = k2 ? 'Someone unmutes...' : 'Someone is typing...';
+    if (!k2) for (let k = 0; k < 8; k++) later(SFX.key, 150 + k * 160);
+    later(() => {
+      const kid = shuffle(CLASSMATES)[0];
+      const line = k2
+        ? `<span class="who">${esc(kid)}</span> (on the mic): "${esc(BAND().idea)}"`
+        : `<span class="who">${esc(kid)}:</span> ${esc(BAND().idea)}`;
+      document.getElementById('amb').outerHTML =
+        `<div class="chatlog"><div class="line">${line}</div></div>
+         <p>Ten seconds felt like an hour. But the silence was thinking, not absence. ${esc(kid)} has a real idea. Now what?</p>`;
+      const list = s.choices.map(c => ({ label: fmt(tx(c,'text')) }));
+      const box = document.getElementById('cf');
+      box.innerHTML = choiceList(list) + `<p class="prompt">What is your choice?</p>`;
+      box.querySelectorAll('.choice').forEach(btn => btn.addEventListener('click', () => pick(+btn.dataset.n)));
+      box.querySelector('.choice').focus({ preventScroll:true });
+      digitHandler = n => { if (list[n]) pick(n); };
+    }, 1600);
+  }
+  function pick(n){
+    state.picks.campfire = 'c' + n;
+    const c = s.choices[n];
+    const res = applyChoice(s, c, s.choices, { T:s.wait.T, cost:s.wait.cost, maxAdd:{ T:s.wait.T, E:0, D:0 } });
+    showConsequence(i, s, c, res, `<p class="status">You held the silence for ten seconds.</p>`);
+  }
+}
+
+/* ---------- Random trail events ---------- */
+function maybeEvent(nextIdx, go){
+  const remaining = EVENTS.filter(e => !state.eventsSeen.has(e.id));
+  const force = nextIdx === 7 && state.eventCount === 0;
+  if (!remaining.length || state.eventCount >= 3 || nextIdx < 2 || (!force && Math.random() > 0.5)) return go();
+  const ev = remaining[rand(remaining.length)];
+  state.eventsSeen.add(ev.id); state.eventCount++;
+  SFX.event();
+  const kid = shuffle(CLASSMATES)[0];
+  if (ev.day){ state.daylight = clamp(state.daylight + ev.day, 0, state.dayMax); state.disp = state.daylight; }
+  const dayLine = ev.day < 0 ? `<p class="warn">Daylight lost: ${-ev.day} min.</p>` : ev.day > 0 ? `<p class="status">Daylight gained: ${ev.day} min.</p>` : '';
+  const head = `<h2 class="place">On the trail</h2><p>${fmt(ev.text, { kid })}</p>`;
+  if (ev.choices){
+    const list = ev.choices.map(c => ({ label: esc(c[0]) }));
+    setPanel(`${head}${choiceList(list)}`);
+    digitHandler = wireChoices(list, n => {
+      setPanel(`${head}<p class="picked">You chose: ${esc(ev.choices[n][0])}</p><p>${fmt(ev.choices[n][1], { kid })}</p><button class="btn" id="b2" data-focus>Carry on</button>`);
+      onBtn('b2', go);
+    });
+    return;
+  }
+  setPanel(`${head}${dayLine}<button class="btn" id="b2" data-focus>Carry on</button>`);
+  onBtn('b2', go);
+}
+
+/* ---------- travel ---------- */
+function travelTo(target, done){
+  const dur = REDUCE ? 1300 : 4600;
+  state.travel = {
+    t0: performance.now(), dur,
+    d0: state.disp, d1: state.daylight,
+    n0: state.night, n1: target.night ? 1 : 0,
+    to: target.landmark, done
+  };
+  state.moving = true; state.landmark = null;
+  startTune(dur);
+  setPanel(`
+    <p>${fmt("{name}'s party continues west...")}</p>
+    <button class="btn" id="skip" data-focus>Skip ahead</button>`);
+  onBtn('skip', () => { if (state.travel) state.travel.t0 = -1e9; });
+}
+
+/* ============================================================
+   DESTINATION + REVEAL
+   ============================================================ */
+function computeIdentity(){
+  const {T,E,D} = state.scores, M = state.maxSoFar;
+  const r = { T:T/(M.T||1), E:E/(M.E||1), D:D/(M.D||1) };
+  const avg = (r.T + r.E + r.D) / 3;
+  if (state.daylight >= state.dayMax / 3 && avg < 0.4) return IDENTITIES.speed;
+  if ((r.T + r.D) / 2 < 0.3) return IDENTITIES.explainer;
+  const mx = Math.max(r.T, r.E, r.D), mn = Math.min(r.T, r.E, r.D);
+  if (mx - mn <= 0.15 && avg >= 0.55) return IDENTITIES.balanced;
+  if (r.E === mx) return IDENTITIES.evidence;
+  if (r.D === mx) return IDENTITIES.discussion;
+  return IDENTITIES.thinking;
+}
+
+function checkMessage(){
+  const n = state.checks.length, onlyEnd = n === 1 && state.checks[0] === 'sunset';
+  if (n === 0) return `You never heard from every traveler at once. The whole lesson ran on what a few voices told you.`;
+  if (onlyEnd) return `Your only whole-class check came at sunset. By then, there's no daylight left to act on what you learn.`;
+  if (n >= 4) return `You checked on the whole party all along the trail, so you could change course while there was still daylight.`;
+  return `You checked on the whole party ${n} times. Each check you add earlier in the trail is one more chance to change course.`;
+}
+function timelineHtml(){
+  return `<ol class="timeline" aria-label="Your lesson, landmark by landmark">${SCENES.map(s => {
+    const on = state.checks.includes(s.id);
+    const first = SCENES.find(x => x.cycle === s.cycle) === s;
+    const lbl = first ? ['', 'First pass', 'Repeat', 'Repeat', 'Close'][s.cycle] : '';
+    return `<li class="c${s.cycle}"><span class="cy">${lbl || '&nbsp;'}</span><span class="ph ph-${s.phase.toLowerCase()}">${s.phase}</span><span class="tl-name">${esc(s.short)}</span><span class="dot ${on ? 'on' : ''}" aria-label="${on ? 'Heard from every student' : 'No whole-class check'}">${on ? '●' : '○'}</span></li>`;
+  }).join('')}</ol>`;
+}
+const SELF_LABELS = ['None','Once','Twice','Three times','Four or more'];
+function showArrival(){
+  checkpoint({ stage:'arrival' });
+  banner.textContent = 'Student Thinking';
+  SFX.fanfare();
+  const opts = SELF_LABELS.map(l => ({ label: esc(l) }));
+  setPanel(`
+    <h2 class="place">${fmt("{name}'s party has reached Student Thinking")}</h2>
+    <p>Before you look back at this trail, think about the last lesson you actually taught.</p>
+    <p>How many times did you hear from every student? Not the volunteers. Every student.</p>
+    ${choiceList(opts)}
+    <p class="small">Your answer stays on this screen. Nobody else sees it.</p>`);
+  digitHandler = wireChoices(opts, n => { state.selfChecks = n; savePicks(); showArrivalResults(); });
+}
+function compareLine(){
+  const trail = state.checks.length, mine = state.selfChecks, mineTxt = SELF_LABELS[mine].toLowerCase();
+  const head = `Your last real lesson: ${mineTxt}. This trail: ${trail} time${trail === 1 ? '' : 's'}.`;
+  if (mine >= 4) return head + ` You're already checking often. Look at where your checks land: early enough to change course?`;
+  if (trail > mine) return head + ` Which of the moves you made out here could fit in your next real lesson?`;
+  return head + ` Out here you checked less than you do in your real classroom. What made it easy to skip?`;
+}
+function showArrivalResults(){
+  const id = computeIdentity();
+  setPanel(`
+    <h2 class="place">${fmt("{name}'s party has reached Student Thinking")}</h2>
+    <p>Your Trail Identity:</p>
+    <div class="identity">${esc(id.name)}</div>
+    <p>${esc(id.desc)}</p>
+    <h2 class="place" style="margin-top:18px">Your lesson, landmark by landmark</h2>
+    ${timelineHtml()}
+    <p class="small">● = you heard from every student there.</p>
+    <p class="${state.checks.length >= 4 ? 'status' : 'echo'}">${checkMessage()}</p>
+    <p class="quote">${esc(compareLine())}</p>
+    <p class="small">Hunches that matched what happened: ${state.hunches} of ${state.hunchTotal}. Casey sightings: ${state.casey}. Times you went with one student's answer: ${state.oneVoice}. Daylight left: ${state.daylight} min.</p>
+    <button class="btn" id="cont" data-focus>Find the Trail Guide</button>`);
+  onBtn('cont', revealStart);
+}
+
+function revealStart(){
+  banner.textContent = '';
+  guideScreen('reveal', revealCycle, 'Show me');
+}
+
+function revealCycle(){
+  const words = ['Teach','Try','Discuss','Repeat'];
+  setPanel(`
+    <h2 class="place">The trail you just traveled</h2>
+    ${timelineHtml()}
+    <div class="cycle" aria-label="Teach, Try, Discuss, Repeat">
+      ${words.map((w,i) => `<span class="w${i}" style="--d:${i}">${w}</span>`).join('')}
+    </div>
+    <p class="quote">Teach them enough to begin. Let them try, and hear from every one of them. Discuss the thinking. Then repeat, as many times as the lesson needs. Close with a check for understanding at the end of class: the last check, not the only one.</p>
+    <div class="ttd">
+      <p><span class="ph-teach">Teach:</span> a focused explanation, a modeled strategy, or one important idea. Then stop. Don't solve every example, explain without a student task, or do all the thinking before students get a turn.</p>
+      <p><span class="ph-try">Try:</span> students solve, explain in writing, submit work, or respond to a prompt, poll, or whiteboard. Gather evidence from all students, not only the ones who volunteer.</p>
+      <p><span class="ph-discuss">Discuss:</span> students explain, compare strategies, find and fix errors, agree or disagree with evidence, and question each other's reasoning. You press for evidence and let their work decide your next move.</p>
+      <p><span class="ph-repeat">Repeat:</span> run the cycle again with the next idea, or with a reteach for the students who need it. A class can go through it several times.</p>
+      <p><span class="ph-check">Check:</span> end class with a check for understanding from every student, so you know where tomorrow starts.</p>
+    </div>
+    <button class="btn" id="cont" data-focus>Continue</button>`);
+  onBtn('cont', () => guideScreen('meaning', revealQuestion));
+}
+
+function revealQuestion(){
+  setPanel(`
+    <div class="big-q">Who is doing the thinking?</div>
+    <button class="btn" id="cont" data-focus>Continue</button>`);
+  onBtn('cont', () => guideScreen('farewell', showPlanner, 'Plan your next lesson'));
+}
+
+/* ---------- plan a real lesson, optional marker ---------- */
+const PLAN_FIELDS = [
+  { k:'topic',   label:'What lesson are you teaching this week?', ph:'Comparing fractions with unlike denominators', short:true, req:true },
+  { k:'teach',   label:'Teach: your focused explanation. What\u2019s the one idea, and where will you stop talking?', ph:'Show why a bigger denominator means smaller pieces with one fraction strip, then stop.', req:true },
+  { k:'try',     label:'Try: how will you hear from every student, not just volunteers?', ph:'Chat waterfall: everyone types an answer and waits for "go."', req:true },
+  { k:'discuss', label:'Discuss: what will students explain, compare, or argue about?', ph:'Post two answers side by side: "Which is right? Convince us."', req:true },
+  { k:'repeat',  label:'Repeat: where will you run the cycle again?', ph:'After the discussion, a second idea with a new Try.', req:false },
+  { k:'check',   label:'Check: your end-of-class check for understanding', ph:'One exit problem in a private poll.', req:true }
+];
+function planText(){
+  const p = state.plan;
+  return [`My Learning Trail lesson plan (${state.name})`, '', `Lesson: ${p.topic}`, '',
+    `TEACH: ${p.teach}`, `TRY (hear from every student): ${p.try}`, `DISCUSS: ${p.discuss}`,
+    `REPEAT: ${p.repeat || '(not planned yet)'}`, `CHECK (end of class): ${p.check}`].join('\n');
+}
+function showPlanner(){
+  checkpoint({ stage:'planner' });
+  const p = state.plan || {};
+  setPanel(`
+    <h2 class="place">Plan your next lesson</h2>
+    <div class="ledger planner">
+      <p>Take the trail back to your own classroom. Plan one real lesson you're teaching this week. A sentence or two for each is plenty.</p>
+      ${PLAN_FIELDS.map(f => `
+        <label for="pl-${f.k}">${esc(f.label)}${f.req ? '' : ' <span class="small">(optional)</span>'}</label>
+        ${f.short
+          ? `<input type="text" id="pl-${f.k}" maxlength="120" placeholder="${esc(f.ph)}" value="${esc(p[f.k] || '')}">`
+          : `<textarea id="pl-${f.k}" maxlength="400" placeholder="${esc(f.ph)}">${esc(p[f.k] || '')}</textarea>`}`).join('')}
+      <p class="warn" id="pErr" hidden></p>
+      <button class="btn" id="saveplan">Finish my plan</button>
+    </div>`);
+  document.getElementById('pl-topic').focus({ preventScroll:true });
+  let draftTimer = null;
+  panel.querySelectorAll('.planner input, .planner textarea').forEach(el => el.addEventListener('input', () => {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      const draft = {}; PLAN_FIELDS.forEach(f => draft[f.k] = document.getElementById('pl-' + f.k).value);
+      state.plan = draft; checkpoint({ stage:'planner' });
+    }, 600);
+  }));
+  onBtn('saveplan', async () => {
+    const plan = {}; let missing = null;
+    PLAN_FIELDS.forEach(f => { plan[f.k] = document.getElementById('pl-' + f.k).value.trim(); if (f.req && plan[f.k].length < 3 && !missing) missing = f; });
+    if (missing){
+      const e = document.getElementById('pErr'); e.textContent = 'Fill in each part of the plan. Repeat is the only optional one.'; e.hidden = false;
+      document.getElementById('pl-' + missing.k).focus(); return;
+    }
+    state.plan = plan;
+    const btn = document.getElementById('saveplan'); btn.disabled = true; btn.textContent = 'Saving...';
+    state.saved = await saveCompletion(plan);
+    showPlanSummary();
+  });
+}
+function showPlanSummary(){
+  const p = state.plan;
+  setPanel(`
+    <h2 class="place">Your plan for ${esc(p.topic)}</h2>
+    <div class="ledger">
+      <p><span class="ph-teach">Teach:</span> ${esc(p.teach)}</p>
+      <p><span class="ph-try">Try:</span> ${esc(p.try)}</p>
+      <p><span class="ph-discuss">Discuss:</span> ${esc(p.discuss)}</p>
+      <p><span class="ph-repeat">Repeat:</span> ${esc(p.repeat || 'Not planned yet. Worth deciding before you teach it.')}</p>
+      <p><span class="ph-check">Check:</span> ${esc(p.check)}</p>
+    </div>
+    <p class="small">Keep a copy so you have it when you teach it.</p>
+    <p class="status" id="cpMsg" hidden></p>
+    <div>
+      ${cap.downloads ? `<button class="btn" id="dl">Save a copy</button>` : ''}
+      <button class="btn ${cap.downloads ? 'quiet' : ''}" id="cp">Copy the plan</button>
+      <button class="btn quiet" id="nx">Continue</button>
+    </div>`);
+  const msg = t => { const m = document.getElementById('cpMsg'); m.textContent = t; m.hidden = false; };
+  onBtn('dl', async () => { try { await cap.downloads.save({ filename:'my-lesson-plan.txt', data: planText() }); } catch (e) {} });
+  onBtn('cp', async () => {
+    try { await navigator.clipboard.writeText(planText()); msg('Copied. Paste it into your planner or lesson doc.'); }
+    catch (e) { msg('Copying isn\u2019t allowed here. Select the plan above and copy it by hand.'); }
+  });
+  onBtn('nx', () => { if (cap.db && cap.uid) showMarkerForm(); else showComplete(); });
+}
+
+function showMarkerForm(){
+  const mine = state.markers.find(m => m.id === cap.uid);
+  setPanel(`
+    <h2 class="place">Leave a marker on the trail</h2>
+    <p>Teachers who travel after you will find it at that landmark. Markers don't show your name.</p>
+    <label for="mk-lm">Where</label>
+    <select id="mk-lm">${SCENES.map(s => `<option value="${s.id}" ${mine && mine.landmark === s.id ? 'selected' : ''}>${esc(s.short)}</option>`).join('')}</select>
+    <label for="mk-tx" style="margin-top:12px">What it says</label>
+    <input type="text" id="mk-tx" maxlength="90" placeholder="Here lies my poll. It never loaded." value="${mine ? esc(mine.text) : ''}" data-focus>
+    <p class="warn" id="mErr" hidden></p>
+    <div><button class="btn" id="plant">Plant the marker</button><button class="btn quiet" id="skipm">Skip</button></div>`);
+  onBtn('skipm', showComplete);
+  onBtn('plant', async () => {
+    const text = document.getElementById('mk-tx').value.trim();
+    const err = document.getElementById('mErr');
+    if (!text){ err.textContent = 'Write something for the marker, or skip.'; err.hidden = false; return; }
+    try {
+      await cap.db.doc('tombstones/' + cap.uid).set({ landmark: document.getElementById('mk-lm').value, text, at: new Date().toISOString() });
+      showComplete('Your marker stands on the trail.');
+    } catch (e) {
+      err.textContent = 'The marker couldn\u2019t be planted. You may not have permission to add to this trail.'; err.hidden = false;
+    }
+  });
+}
+
+function showComplete(note){
+  clearSave();
+  screen = 'complete';
+  const when = new Date().toLocaleDateString(undefined, { month:'long', day:'numeric', year:'numeric' });
+  const savedLine = state.saved === 'saved' ? 'Your journey and lesson plan are recorded in the trail log.'
+    : state.saved === 'failed' ? 'The trail log couldn\u2019t record your journey. Let your coach know you finished.'
+    : 'Your plan isn\u2019t saved anywhere else. Copy it before you close this page.';
+  setPanel(`
+    <h2 class="place">Journey complete</h2>
+    <p>${fmt('{name}')}, ${esc(BAND().label)} party. Arrived at Student Thinking on ${esc(when)}.</p>
+    <p class="${state.saved === 'saved' ? 'status' : 'echo'}">${savedLine}${note ? ' ' + esc(note) : ''}</p>
+    <p>Teach. Try. Discuss. Repeat. Then check before they go.</p>
+    <button class="btn" id="again" data-focus>Travel the trail again</button>`);
+  onBtn('again', () => { resetJourney(); showBand(); });
+}
+
+/* ---------- owner-only trail log ---------- */
+function choiceShort(s, key){
+  if (key === 'early') return 'Broke the silence: answered it themselves';
+  if (key === 'callOn') return 'Broke the silence: called on Casey by name';
+  const c = s.choices[+String(key).slice(1)];
+  if (!c) return key;
+  const t = c.text.replace(/\u2019/g, "'");
+  return (s.id === 'campfire' ? 'Waited, then: ' : '') + (t.length > 64 ? t.slice(0, 62) + '...' : t);
+}
+async function showTrailLog(){
+  screen = 'log';
+  setPanel(`<h2 class="place">Trail log</h2><p>Opening the log...</p>`);
+  let rows = [], plays = [];
+  try {
+    const [snap, pk] = await Promise.all([cap.db.collection('completions').get(), cap.db.collection('picks').get()]);
+    rows = snap.docs.map(d => d.data()).sort((a,b) => String(b.completedAt).localeCompare(String(a.completedAt)));
+    plays = pk.docs.map(d => d.data());
+  } catch (e) {
+    setPanel(`<h2 class="place">Trail log</h2><p class="warn">The log couldn't be read right now.</p><button class="btn" id="back" data-focus>Back</button>`);
+    return onBtn('back', showTitle);
+  }
+  const fmtDate = s => s ? new Date(s).toLocaleDateString(undefined, { month:'short', day:'numeric' }) : '';
+  const tally = SCENES.map(s => {
+    const counts = {};
+    plays.forEach(p => { const k = p.picks && p.picks[s.id]; if (k) counts[k] = (counts[k] || 0) + 1; });
+    const total = Object.values(counts).reduce((a,b) => a + b, 0);
+    const keys = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+    return { s, total, rows: keys.map(k => ({ label: choiceShort(s, k), pct: Math.round(100 * counts[k] / total) })) };
+  });
+  const videoSection = `
+    <h2 class="place">Trail Guide videos</h2>
+    <p class="small">MP4 or WebM, under 20 MB each (about 45 seconds at 720p). Until a clip is uploaded, teachers see that part as text.</p>
+    ${GUIDE_SLOTS.map((k, n) => { const g = GUIDE[k], id = state.guide[k]; return `
+      <div class="slot">
+        <div class="tname">${n + 1}. ${esc(g.title)}</div>
+        <p class="small">${esc(g.where)}. About ${g.secs} seconds.</p>
+        <details class="script"><summary>Script</summary><p>${esc(guideText(g))}</p>${g.stage ? `<p class="small">Stage direction: ${esc(g.stage)}</p>` : ''}</details>
+        <p class="${id ? 'status' : 'small'}" id="vs-${k}">${id ? 'Video uploaded.' : 'No video yet.'}</p>
+        <label for="vf-${k}" class="small">${id ? 'Replace with' : 'Video file'}</label>
+        <input type="file" id="vf-${k}" accept="video/mp4,video/webm">
+        <div><button class="btn quiet" data-up="${k}">Upload</button>${id ? `<button class="btn quiet" data-pv="${k}">Preview</button><button class="btn quiet" data-rm="${k}">Remove video</button>` : ''}</div>
+        <div id="pv-${k}"></div>
+      </div>`; }).join('')}`;
+  setPanel(`
+    <h2 class="place">Trail log (only you can see this)</h2>
+    ${videoSection}
+    <h2 class="place" style="margin-top:22px">Who finished</h2>
+    <p>${rows.length} teacher${rows.length === 1 ? '' : 's'} have signed the log.</p>
+    ${rows.length ? `<div class="logwrap"><table>
+      <thead><tr><th>Name</th><th>Party</th><th>Finished</th><th>Plays</th><th>Lesson plan</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.name || '')}</td><td>${esc(r.gradeBand || '')}</td><td>${esc(fmtDate(r.completedAt))}</td><td>${esc(r.plays || 1)}</td><td class="r">${r.plan ? `<b>${esc(r.plan.topic)}</b><br>Teach: ${esc(r.plan.teach)}<br>Try: ${esc(r.plan.try)}<br>Discuss: ${esc(r.plan.discuss)}<br>Repeat: ${esc(r.plan.repeat || '—')}<br>Check: ${esc(r.plan.check)}` : esc(r.reflection || '')}</td></tr>`).join('')}</tbody>
+    </table></div>` : ''}
+    ${cap.downloads && rows.length ? `<button class="btn" id="csv">Download as CSV</button>` : ''}
+    <h2 class="place" style="margin-top:22px">How the staff traveled</h2>
+    <p class="small">Anonymous. Choices are saved with no names or accounts, so nobody can see who chose what. ${plays.length} journey${plays.length === 1 ? '' : 's'} so far.</p>
+    ${plays.some(p => p.selfChecks != null) ? (() => {
+      const withSelf = plays.filter(p => p.selfChecks != null);
+      const counts = SELF_LABELS.map((l, k) => withSelf.filter(p => p.selfChecks === k).length);
+      return `<div class="tally"><div class="tname">"In your last real lesson, how many times did you hear from every student?"</div>
+        ${SELF_LABELS.map((l, k) => { const pct = Math.round(100 * counts[k] / withSelf.length); return `<div class="trow"><span>${esc(l)}</span><span class="tbar"><i style="width:${pct}%"></i></span><span>${pct}%</span></div>`; }).join('')}</div>`;
+    })() : ''}
+    ${plays.length ? tally.map(t => `
+      <div class="tally"><div class="tname">${esc(t.s.short)}</div>
+      ${t.rows.map(r => `<div class="trow"><span>${esc(r.label)}</span><span class="tbar"><i style="width:${r.pct}%"></i></span><span>${r.pct}%</span></div>`).join('')}
+      </div>`).join('') : '<p>No journeys yet.</p>'}
+    <h2 class="place" style="margin-top:22px">Trail markers</h2>
+    ${state.markers.length ? `<div class="logwrap"><table><thead><tr><th>Where</th><th>Says</th><th></th></tr></thead><tbody>
+      ${state.markers.map(m => `<tr><td>${esc((SCENES.find(s => s.id === m.landmark) || {}).short || m.landmark)}</td><td>${esc(m.text)}</td><td><button class="btn quiet" data-del="${esc(m.id)}">Remove</button></td></tr>`).join('')}
+    </tbody></table></div>` : '<p>No markers yet.</p>'}
+    <button class="btn" id="back">Back</button>`);
+  onBtn('back', showTitle);
+  onBtn('csv', async () => {
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const csv = ['Name,Grade band,Completed,First completed,Plays,Lesson,Teach,Try,Discuss,Repeat,Check']
+      .concat(rows.map(r => { const pl = r.plan || {}; return [r.name, r.gradeBand, r.completedAt, r.firstCompletedAt, r.plays, pl.topic, pl.teach, pl.try, pl.discuss, pl.repeat, pl.check].map(q).join(','); })).join('\n');
+    try { await cap.downloads.save({ filename:'learning-trail-log.csv', data:csv }); } catch (e) {}
+  });
+  const vmsg = (k, text, ok) => { const el = document.getElementById('vs-' + k); el.textContent = text; el.className = ok ? 'status' : 'warn'; };
+  panel.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', async () => {
+    const k = b.dataset.up, file = document.getElementById('vf-' + k).files[0];
+    if (!file) return vmsg(k, 'Choose a video file first.');
+    if (!/^video\/(mp4|webm)$/.test(file.type))
+      return vmsg(k, `That file is ${file.type || 'an unknown type'}. Upload an MP4 or WebM. iPhone videos (.mov) need to be exported or converted to MP4 first.`);
+    if (file.size > 20 * 1024 * 1024)
+      return vmsg(k, `That file is ${(file.size / 1048576).toFixed(1)} MB. Videos must be under 20 MB. Export at 720p or trim the clip.`);
+    const assets = await claude.use('assets');
+    if (!assets) return vmsg(k, 'Uploading isn\u2019t available in this view. Open the trail from your own account.');
+    b.disabled = true; vmsg(k, 'Uploading...', true);
+    try {
+      const r = await assets.upload(file);
+      const old = state.guide[k];
+      const next = { ...state.guide, [k]: r.id };
+      await cap.db.doc('config/guide').set(next);
+      state.guide = next;
+      if (old){ try { await assets.delete(old); } catch (e) {} }
+      showTrailLog();
+    } catch (e) {
+      b.disabled = false;
+      vmsg(k, e && e.code === 'too_large' ? 'That file is too large. Keep it under 20 MB.'
+        : e && e.code === 'quota_exceeded' ? 'This trail is out of video storage. Remove a clip you don\u2019t need, then try again.'
+        : 'The upload didn\u2019t go through. Try again.');
+    }
+  }));
+  panel.querySelectorAll('[data-pv]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.pv, box = document.getElementById('pv-' + k);
+    box.innerHTML = box.innerHTML ? '' : `<video class="gvideo" src="/_blob/${esc(state.guide[k])}" controls playsinline></video>`;
+  }));
+  panel.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', async () => {
+    const k = b.dataset.rm, old = state.guide[k];
+    b.disabled = true;
+    try {
+      const next = { ...state.guide }; delete next[k];
+      await cap.db.doc('config/guide').set(next);
+      state.guide = next;
+      const assets = await claude.use('assets');
+      if (assets && old){ try { await assets.delete(old); } catch (e) {} }
+      showTrailLog();
+    } catch (e) { b.disabled = false; vmsg(k, 'The video couldn\u2019t be removed. Try again.'); }
+  }));
+  panel.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await cap.db.doc('tombstones/' + b.dataset.del).delete(); b.closest('tr').remove(); } catch (e) { b.disabled = false; }
+  }));
+}
+
+/* ============================================================
+   PIXEL ART
+   ============================================================ */
+const cv = document.getElementById('scene');
+const ctx = cv.getContext('2d');
+const W = 320, H = 180, HZ = 112, WAGON_X = 150, GROUND = 150;
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let time = 0, last = performance.now();
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const wrap = (v,m) => ((v % m) + m) % m;
+const ease = t => 1 - Math.pow(1 - t, 3);
+function rgb(c){ const n = parseInt(c.slice(1),16); return [n>>16&255, n>>8&255, n&255]; }
+function mix(a,b,t){ const A = rgb(a), B = rgb(b); return '#' + A.map((v,i) => Math.round(v + (B[i]-v)*t).toString(16).padStart(2,'0')).join(''); }
+function px(x,y,w,h,c){ ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+function disc(cx,cy,r,c){ ctx.fillStyle = c; for (let dy = -r; dy <= r; dy++){ const w = Math.round(Math.sqrt(r*r - dy*dy)); ctx.fillRect(Math.round(cx - w), Math.round(cy + dy), w*2 + 1, 1); } }
+function line(x0,y0,x1,y1,c){ const n = Math.max(Math.abs(x1-x0), Math.abs(y1-y0)) | 0; for (let i = 0; i <= n; i++){ const t = n ? i/n : 0; px(x0 + (x1-x0)*t, y0 + (y1-y0)*t, 1, 1, c); } }
+
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const STARS = Array.from({length:46}, () => [rnd()*W | 0, rnd()*95 | 0, rnd()*5]);
+const CLOUDS = [[20,22],[120,40],[205,15],[290,32]];
+
+function drawWheel(cx,cy,r,a){
+  const c = '#3a2412';
+  for (let k = 0; k < 4; k++){ const t = a + k*Math.PI/4; line(cx - Math.cos(t)*(r-1), cy - Math.sin(t)*(r-1), cx + Math.cos(t)*(r-1), cy + Math.sin(t)*(r-1), '#6b4424'); }
+  for (let t = 0; t < Math.PI*2; t += 0.12){ px(cx + Math.cos(t)*r, cy + Math.sin(t)*r, 1, 1, c); px(cx + Math.cos(t)*(r-0.8), cy + Math.sin(t)*(r-0.8), 1, 1, c); }
+  px(cx-1, cy-1, 3, 3, c);
+}
+function drawOx(x,y,body,frame){
+  px(x, y-15, 20, 8, body);
+  px(x+2, y-8, 16, 1, mix(body,'#000000',.3));
+  px(x-6, y-15, 7, 6, body);
+  px(x-7, y-12, 3, 3, '#d9b48a');
+  px(x-6, y-17, 2, 2, '#efe6cc'); px(x-1, y-17, 2, 2, '#efe6cc');
+  px(x-4, y-13, 1, 1, '#000');
+  const legs = [2,6,13,17];
+  legs.forEach((lx,i) => { const lift = frame && (i % 2 === 0) ? 1 : 0; px(x+lx, y-7, 2, 7-lift, mix(body,'#000000',.25)); });
+  px(x+20, y-14, 1, 6, mix(body,'#000000',.3));
+}
+function drawWagon(x,y,broken){
+  const moving = state.moving;
+  const bob = moving && Math.sin(time*18) > 0 ? 1 : 0;
+  const frame = moving ? (Math.floor(state.scroll/5) % 2) : 0;
+  const ox = x - 38;
+  px(ox + 20, y - 11, x - (ox + 20), 1, '#3a2412');
+  drawOx(ox + 4, y - 2, '#6e4520', 1 - frame);
+  drawOx(ox, y, '#8e5c2c', frame);
+  const sag = broken ? 3 : 0;
+  // bonnet
+  px(x+3, y-31+bob, 36, 14, '#efe4c4');
+  px(x+5, y-33+bob, 32, 2, '#efe4c4');
+  px(x+8, y-34+bob, 26, 1, '#efe4c4');
+  px(x+3, y-19+bob, 36, 2, '#cdbf98');
+  [12,21,30].forEach(r => px(x+r, y-33+bob, 1, 15, '#d6c8a2'));
+  // bed
+  px(x, y-17+bob, 42, 7, '#7a4a22');
+  px(x, y-17+bob, 42, 1, '#a8733c');
+  px(x+14, y-16+bob, 1, 6, '#5e3818'); px(x+28, y-16+bob, 1, 6, '#5e3818');
+  const a = -state.scroll * 0.16;
+  drawWheel(x+8, y-6, 6, a);
+  if (!broken) drawWheel(x+33, y-7, 7, a);
+  else {
+    px(x+29, y-11+sag, 8, 11-sag, '#7d776e'); px(x+29, y-11+sag, 8, 1, '#a39d92');
+    line(x+46, y-1, x+64, y-1, '#3a2412'); line(x+46, y-2, x+64, y-2, '#3a2412');
+    line(x+48, y-3, x+62, y-1, '#6b4424'); line(x+55, y-3, x+55, y-1, '#6b4424');
+    px(x+58, y-3, 1, 2, '#d9b48a');
+  }
+}
+function rock(x,y,w,h){
+  px(x, y-h, w, h, '#857b70'); px(x+2, y-h-2, w-4, 2, '#857b70');
+  px(x+2, y-h-2, w-6, 2, '#aaa196'); px(x, y-2, w, 2, '#5f574e');
+}
+function fire(x,y){
+  for (let r of [44,30,19]){ ctx.fillStyle = 'rgba(255,140,40,0.07)'; disc(x+5, y-4, r, 'rgba(255,140,40,0.07)'); }
+  px(x-3, y, 16, 2, '#5a3416'); px(x, y-1, 10, 1, '#6e4520');
+  for (let i = 0; i < 5; i++){ const h = 5 + ((Math.sin(time*13 + i*1.9) + 1) * 3.5 | 0); px(x + i*2, y - h, 2, h, '#ff5a1f'); }
+  for (let i = 0; i < 3; i++){ const h = 3 + ((Math.sin(time*17 + i*2.3) + 1) * 2 | 0); px(x + 2 + i*2, y - h, 2, h, '#ffb21f'); }
+  px(x+4, y-2, 2, 2, '#fff2a8');
+}
+
+function drawBackProps(lm){
+  if (lm === 'mountain'){
+    const peaks = [[28,64],[92,46],[248,74],[318,52]];
+    for (let x = 0; x < W; x++){
+      let h = 0, top = 0;
+      peaks.forEach(([p,ph]) => { const v = ph - Math.abs(x - p) * 1.15; if (v > h){ h = v; top = ph; } });
+      if (h <= 0) continue;
+      h = Math.round(h);
+      px(x, HZ - h, 1, h + 2, x % 7 === 0 ? '#565878' : '#5f6186');
+      if (top - h < 10) px(x, HZ - h, 1, Math.max(1, 10 - (top - h)), '#f1f1f8');
+    }
+  }
+  if (lm === 'rocky'){
+    for (let x = 0; x < W; x++){ const h = 6 + ((x*37) % 11) + (Math.sin(x*0.09) * 6 | 0); if (h > 0) px(x, HZ - h, 1, h + 3, '#8c8073'); }
+  }
+}
+function drawFrontProps(lm){
+  switch(lm){
+    case 'trailhead':
+      px(242, 116, 3, 34, '#5a3416');
+      px(228, 110, 34, 13, '#c8913f'); px(228, 110, 34, 1, '#e0b060'); px(228, 122, 34, 1, '#7a4a22');
+      ctx.fillStyle = '#2a1608'; ctx.font = '9px VT323, monospace'; ctx.textAlign = 'center'; ctx.fillText('WEST', 245, 120); ctx.textAlign = 'left';
+      px(270, 140, 10, 10, '#7a4a22'); px(270, 143, 10, 1, '#5a3416'); px(282, 142, 8, 8, '#8e5a2a');
+      break;
+    case 'fork':
+      for (let y = 122; y <= 140; y++){ const x0 = (y - 122) * 5 - 6; px(x0, y, 34, 1, y % 3 ? '#b98a4a' : '#a87a40'); }
+      px(66, 112, 3, 34, '#5a3416');
+      px(50, 112, 20, 6, '#c8913f'); px(48, 113, 2, 4, '#c8913f'); px(46, 114, 2, 2, '#c8913f');
+      px(64, 121, 20, 6, '#c8913f'); px(62, 122, 2, 4, '#c8913f'); px(60, 123, 2, 2, '#c8913f');
+      break;
+    case 'river':
+      for (let y = HZ; y < H; y++){
+        const c = 34 + (y - HZ) * 0.55, w = 10 + (y - HZ) * 0.75;
+        px(c - w/2, y, w, 1, y % 4 === 0 ? '#3c7ec4' : '#2f6fb8');
+        if ((y + Math.floor(time*6)) % 6 === 0) px(c - w/2 + wrap(time*14 + y*7, Math.max(1,w-5)), y, 4, 1, '#a8dcff');
+      }
+      break;
+    case 'rocky':
+      rock(14,166,24,14); rock(58,160,14,9); rock(86,154,18,14); rock(214,150,16,10); rock(262,170,30,18); rock(110,126,12,7);
+      break;
+    case 'campfire':
+      px(262, 128, 1, 22, '#5a3416');
+      for (let i = 0; i < 22; i++) px(262 - i*0.9, 128 + i, i*1.8 + 1, 1, i % 5 ? '#e8dcc0' : '#cdbf98');
+      fire(232, 152);
+      break;
+    case 'water':
+      for (let dy = -6; dy <= 6; dy++){ const w = Math.round(30 * Math.sqrt(1 - (dy*dy)/36)); px(262 - w, 160 + dy, w*2, 1, dy < -3 ? '#5a9ad8' : '#3c7ec4'); }
+      if (Math.floor(time*3) % 2) px(250, 158, 6, 1, '#a8dcff'); else px(270, 162, 6, 1, '#a8dcff');
+      [[228,150],[232,148],[296,152],[300,150]].forEach(([x,y]) => { px(x, y, 1, 8, '#3f6a18'); px(x, y-2, 2, 3, '#6b4424'); });
+      px(30, 140, 26, 8, '#7a4a22'); px(30, 140, 26, 2, '#5a9ad8'); px(32, 148, 2, 4, '#5a3416'); px(52, 148, 2, 4, '#5a3416');
+      break;
+    case 'broken':
+      px(232, 138, 14, 12, '#a8733c'); px(232, 143, 14, 1, '#7a4a22'); px(238, 138, 1, 12, '#7a4a22');
+      break;
+    case 'sunset':
+      px(46, 112, 3, 34, '#2f1d10'); disc(47, 106, 9, '#2c3a1c'); disc(40, 112, 6, '#2c3a1c'); disc(55, 111, 6, '#2c3a1c');
+      break;
+    case 'destination':
+      px(18, 100, 46, 10, '#6b3a1a'); px(22, 96, 38, 4, '#6b3a1a');
+      for (let i = 0; i < 22; i++){ const x = 4 + i*4; if (i >= 9 && i <= 12) continue; px(x, 120, 4, 30, i % 2 ? '#7a4a22' : '#8e5a2a'); px(x+1, 118, 2, 2, '#7a4a22'); }
+      px(40, 126, 16, 24, '#2a1608');
+      px(102, 84, 1, 66, '#d8d8d8');
+      for (let i = 0; i < 12; i++) px(103 + i, 85 + (Math.sin(time*6 - i*0.6) > 0 ? 1 : 0), 1, 7, '#ffcc55');
+      px(14, 102, 72, 19, '#c8913f'); px(14, 102, 72, 1, '#e8b860'); px(14, 120, 72, 1, '#7a4a22');
+      ctx.fillStyle = '#2a1608'; ctx.font = '9px VT323, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('STUDENT', 50, 110); ctx.fillText('THINKING', 50, 118); ctx.textAlign = 'left';
+      break;
+  }
+}
+
+function drawMarker(x,y){
+  px(x, y-14, 9, 14, '#9a9488'); px(x+1, y-16, 7, 2, '#9a9488'); px(x+2, y-17, 5, 1, '#9a9488');
+  px(x+1, y-14, 1, 13, '#b8b2a6'); px(x+4, y-12, 1, 6, '#5e584e'); px(x+2, y-10, 5, 1, '#5e584e');
+  px(x-2, y, 13, 2, '#4e7a20');
+}
+function draw(){
+  const frac = clamp(state.disp / state.dayMax, 0, 1);
+  const sun = Math.pow(1 - frac, 1.6);
+  const nt = state.night;
+  const top = mix(mix('#3a6cc8','#3b2c72',sun), '#070a24', nt);
+  const bot = mix(mix('#a6dcf2','#f2964a',sun), '#1d2858', nt);
+  for (let i = 0; i < 8; i++) px(0, i*14, W, 14, mix(top, bot, i/7));
+
+  if (nt > 0.15){
+    ctx.globalAlpha = nt;
+    STARS.forEach(s => { if (((time*1.5 + s[2]) | 0) % 6) px(s[0], s[1], 1, 1, '#ffffff'); });
+    disc(70, 24, 7, '#f4f0d8'); disc(74, 22, 6, top);
+    ctx.globalAlpha = 1;
+  }
+  if (nt < 0.6){
+    ctx.globalAlpha = 1 - nt;
+    disc(262, 16 + (1 - frac) * 90, 9, mix('#fff3a0','#ff7a2a',sun));
+    const cc = mix('#ffffff','#ffc8a0',sun), cs = mix('#dfe9f4','#e0907a',sun);
+    CLOUDS.forEach(([cx,cy]) => {
+      const x = wrap(cx + state.scroll*0.12 + time*1.5, 380) - 40;
+      px(x, cy, 26, 5, cc); px(x+5, cy-3, 14, 3, cc); px(x+3, cy+5, 20, 2, cs);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  const mcol = mix(mix('#7076b0','#6a4078',sun), '#151a38', nt);
+  for (let x = 0; x < W; x++){
+    const wx = x - state.scroll * 0.15;
+    const h = Math.round(18 + 9*Math.sin(wx*0.031) + 6*Math.sin(wx*0.077 + 1.3) + 3*Math.sin(wx*0.19));
+    px(x, HZ - h, 1, h + 1, mcol);
+  }
+
+  const off = state.landmark ? Math.round(-(1 - ease(state.slide)) * 280) : 0;
+  if (state.landmark){ ctx.save(); ctx.translate(off, 0); drawBackProps(state.landmark); ctx.restore(); }
+
+  px(0, HZ, W, 10, '#7aa83a'); px(0, HZ+10, W, 18, '#6a9a30');
+  px(0, 140, W, 12, '#b98a4a'); px(0, 140, W, 1, '#9a7038');
+  px(0, 152, W, 28, '#5c8a26');
+  for (let i = 0; i < 16; i++){ const x = wrap(i*24 + state.scroll, W + 24) - 24; px(x, 144, 10, 1, '#8a6234'); px(x + 12, 148, 7, 1, '#8a6234'); }
+  for (let i = 0; i < 15; i++){ const x = wrap(i*29 + state.scroll*0.6, W + 20) - 10, y = 118 + (i*7 % 18); px(x, y, 1, 2, '#4e7a20'); px(x+2, y-1, 1, 3, '#4e7a20'); }
+  for (let i = 0; i < 12; i++){ const x = wrap(i*31 + state.scroll*1.25, W + 20) - 10, y = 160 + (i*5 % 16); px(x, y, 1, 3, '#3f6a18'); px(x+2, y-1, 1, 4, '#3f6a18'); px(x+4, y+1, 1, 2, '#3f6a18'); }
+
+  if (state.landmark){
+    ctx.save(); ctx.translate(off, 0);
+    if (state.landmark !== 'campfire') drawFrontProps(state.landmark);
+    if (markersFor(state.landmark).length) drawMarker(state.landmark === 'campfire' ? 210 : 296, 156);
+    ctx.restore();
+  }
+
+  drawWagon(WAGON_X, GROUND, state.landmark === 'broken' && state.slide >= 1);
+
+  ctx.fillStyle = `rgba(255,110,40,${(sun*0.14).toFixed(3)})`; ctx.fillRect(0, HZ, W, H - HZ);
+  if (nt > 0){ ctx.fillStyle = `rgba(8,12,40,${(nt*0.55).toFixed(3)})`; ctx.fillRect(0, HZ, W, H - HZ); }
+  if (state.landmark === 'campfire'){ ctx.save(); ctx.translate(off, 0); drawFrontProps('campfire'); ctx.restore(); }
+}
+
+const PORTRAIT = [
+  "....hhhhhhhh....",
+  "...hhhhhhhhhh...",
+  "...hbbbbbbbbh...",
+  ".hhhhhhhhhhhhhh.",
+  "....ssssssss....",
+  "...ssssssssss...",
+  "...ssksssskss...",
+  "...ssssrrssss...",
+  "...gwwwwwwwwg...",
+  "...gggkkkkggg...",
+  "...gggggggggg...",
+  "....gggggggg....",
+  ".....gggggg.....",
+  "...cccggggccc...",
+  "..cccccggccccc..",
+  ".cccccccccccccc."
+];
+const PCOL = { h:'#5a3416', b:'#2a1608', s:'#e0a878', k:'#1a1008', r:'#c07850', g:'#c8c8c0', w:'#efefe6', c:'#7a5a3a' };
+function drawPortrait(canvas){
+  if (!canvas) return;
+  const p = canvas.getContext('2d');
+  PORTRAIT.forEach((row,y) => [...row].forEach((ch,x) => { if (PCOL[ch]){ p.fillStyle = PCOL[ch]; p.fillRect(x, y, 1, 1); } }));
+}
+
+function loop(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+  const tr = state.travel;
+  if (tr){
+    const p = clamp((now - tr.t0) / tr.dur, 0, 1);
+    state.scroll += dt * 46;
+    state.disp = tr.d0 + (tr.d1 - tr.d0) * p;
+    state.night = tr.n0 + (tr.n1 - tr.n0) * p;
+    if (p > 0.62){ state.landmark = tr.to; state.slide = (p - 0.62) / 0.38; } else { state.landmark = null; }
+    banner.textContent = `${state.name}'s party continues west... Daylight remaining: ${Math.max(0, Math.round(state.disp))} minutes`;
+    if (p >= 1){
+      state.travel = null; state.moving = false; state.slide = 1;
+      state.disp = tr.d1; state.night = tr.n1; state.landmark = tr.to;
+      banner.textContent = '';
+      stopTune(); if (tr.to !== 'destination') SFX.arrive();
+      tr.done();
+    }
+  }
+  if (!statusEl.hidden) updateDaylight();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+ctx.imageSmoothingEnabled = false;
+setSound(sfx.on);
+showTitle();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
